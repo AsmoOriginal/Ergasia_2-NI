@@ -23,7 +23,49 @@ public abstract class StandingOrder {
 		this.intervalDays = intervalDays;
 		this.active = active;
 	}
-
+	private String getOrderId() {
+		return orderId;
+	}
+	private void setOrderId(String orderId) {
+		this.orderId = orderId;
+	}
+	private Account getSourceAccount() {
+		return sourceAccount;
+	}
+	private void setSourceAccount(Account sourceAccount) {
+		this.sourceAccount = sourceAccount;
+	}
+	private BigDecimal getAmount() {
+		return amount;
+	}
+	private void setAmount(BigDecimal amount) {
+		this.amount = amount;
+	}
+	private LocalDate getStartDate() {
+		return startDate;
+	}
+	private void setStartDate(LocalDate startDate) {
+		this.startDate = startDate;
+	}
+	private LocalDate getEndDate() {
+		return endDate;
+	}
+	private void setEndDate(LocalDate endDate) {
+		this.endDate = endDate;
+	}
+	private int getIntervalDays() {
+		return intervalDays;
+	}
+	private void setIntervalDays(int intervalDays) {
+		this.intervalDays = intervalDays;
+	}
+	private boolean isActive() {
+		return active;
+	}
+	private void setActive(boolean active) {
+		this.active = active;
+	}
+	
 	
     
 }
