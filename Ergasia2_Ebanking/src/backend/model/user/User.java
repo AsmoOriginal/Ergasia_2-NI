@@ -7,7 +7,7 @@ public abstract class User {
 	private String role;            
 	 // ρόλος χρήστη (π.χ. "admin", "individual", "company") 
 	
-
+//
 	public User(String id, String passwordHash, String role) {
 	
 		this.id = id;
