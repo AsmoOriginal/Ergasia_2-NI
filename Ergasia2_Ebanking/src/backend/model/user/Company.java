@@ -17,5 +17,5 @@ public class Company extends Customer {
 		this.businessAccount = businessAccount;
 	}
 	
-	//
+	
 }

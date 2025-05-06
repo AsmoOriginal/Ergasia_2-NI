@@ -16,7 +16,7 @@ public abstract class Customer extends User {
 		this.legalName = legalName;
 		this.userName = userName;
 	}
-	//
+	
 	private String getVat() {
 		return vat;
 	}
