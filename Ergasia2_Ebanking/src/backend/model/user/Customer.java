@@ -4,7 +4,7 @@ public abstract class Customer extends User {
 	
 	private String vat;    // ΑΦΜ - μοναδικός αναγνωριστικός αριθμός πελάτη 
 	private String legalName;   // ονοματεπώνυμο ή επωνυμία πελάτη 
-	private String userName; 
+	private String userName; // ονοματεπώνυμο ή επωνυμία πελάτη μέσα στην εφαρμογή
 	
 	
 	
@@ -38,8 +38,5 @@ public abstract class Customer extends User {
 
 	private void setUserName(String userName) {
 		this.userName = userName;
-	}
-	
-	
-	
+  }
 }
