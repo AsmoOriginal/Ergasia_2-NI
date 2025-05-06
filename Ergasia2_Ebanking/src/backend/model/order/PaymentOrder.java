@@ -23,6 +23,6 @@ public class PaymentOrder extends StandingOrder {
 		this.targetBill = targetBill;
 	}
 	
-	
+	//
 	
 }

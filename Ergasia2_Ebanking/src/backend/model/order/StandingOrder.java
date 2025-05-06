@@ -65,7 +65,7 @@ public abstract class StandingOrder {
 	private void setActive(boolean active) {
 		this.active = active;
 	}
-	
+	//
 	
     
 }
