@@ -10,4 +10,6 @@ public class AccountStatement {
 	private LocalDate fromDate;  // Αρχική ημερομηνία του διαστήματος             
 	private LocalDate toDate;    // Τελική ημερομηνία του διαστήματος 
 	private List<Transaction> transactions;  // Λίστα συναλλαγών για το διάστημα αυτό
+	
+	
 }
