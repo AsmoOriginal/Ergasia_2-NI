@@ -23,12 +23,23 @@ public abstract class Customer extends User {
 	private void setVat(String vat) {
 		this.vat = vat;
 	}
-	private String getName() {
-		return name;
+
+	private String getLegalName() {
+		return legalName;
 	}
-	private void setName(String name) {
-		this.name = name;
+
+	private void setLegalName(String legalName) {
+		this.legalName = legalName;
 	}
+
+	private String getUserName() {
+		return userName;
+	}
+
+	private void setUserName(String userName) {
+		this.userName = userName;
+	}
+	
 	
 	
 }
