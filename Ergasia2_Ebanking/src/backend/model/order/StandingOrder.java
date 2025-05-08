@@ -12,6 +12,7 @@ public abstract class StandingOrder {
     private LocalDate endDate;            // Ημερομηνία λήξης
     private int intervalDays;             // Κάθε πόσες ημέρες εκτελείται
     private boolean active;               // Αν η εντολή είναι ενεργή
+    
 	public StandingOrder(String orderId, Account sourceAccount, BigDecimal amount, LocalDate startDate,
 			LocalDate endDate, int intervalDays, boolean active) {
 		super();
@@ -65,7 +66,7 @@ public abstract class StandingOrder {
 	private void setActive(boolean active) {
 		this.active = active;
 	}
-	//
+	
 	
     
 }
