@@ -1,72 +1,178 @@
 package backend.model.order;
 
+import backend.manager.AccountManager;
+import backend.manager.UserManager;
 import backend.model.account.Account;
+import backend.model.transaction.Transaction;
+import backend.storage.Storable;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-public abstract class StandingOrder {
-	private String orderId;               // Μοναδικός κωδικός εντολής
-    private Account sourceAccount;        // Λογαριασμός χρέωσης
-    private BigDecimal amount;            // Ποσό πάγιας εντολής
-    private LocalDate startDate;          // Ημερομηνία έναρξης
-    private LocalDate endDate;            // Ημερομηνία λήξης
-    private int intervalDays;             // Κάθε πόσες ημέρες εκτελείται
-    private boolean active;               // Αν η εντολή είναι ενεργή
+import backend.model.user.Customer;
+
+import java.util.Map;
+import java.util.HashMap;
+import java.util.List;
+
+public abstract class StandingOrder implements Storable{
+	private String type;            
+    private String orderId;
+    private String title;
+    private String description;
+    private Customer customer;
+    private LocalDate startDate;        // Ημερομηνία έναρξης
+    private LocalDate endDate;           // Ημερομηνία λήξης
+    private BigDecimal fee;
+    private Account chargeAccount; //account that gets charged
+    private Account creditAccount;
+    private boolean isActive;
     
-	public StandingOrder(String orderId, Account sourceAccount, BigDecimal amount, LocalDate startDate,
-			LocalDate endDate, int intervalDays, boolean active) {
+    //Constructor
+	public StandingOrder(String type, String orderId, String title, String description, Customer customer,
+			LocalDate startDate, LocalDate endDate, BigDecimal fee, Account chargeAccount,Account creditAccount, boolean isActive) {
 		super();
+		this.type = type;
 		this.orderId = orderId;
-		this.sourceAccount = sourceAccount;
-		this.amount = amount;
+		this.title = title;
+		this.description = description;
+		this.customer = customer;
 		this.startDate = startDate;
 		this.endDate = endDate;
-		this.intervalDays = intervalDays;
-		this.active = active;
+		this.fee = fee;
+		this.chargeAccount = chargeAccount;
+		this.creditAccount= creditAccount;
+		this.isActive = isActive;
 	}
-	private String getOrderId() {
+
+	public String getType() {
+		return type;
+	}
+
+	public void setType(String type) {
+		this.type = type;
+	}
+
+	public String getOrderId() {
 		return orderId;
 	}
-	private void setOrderId(String orderId) {
+
+	public void setOrderId(String orderId) {
 		this.orderId = orderId;
 	}
-	private Account getSourceAccount() {
-		return sourceAccount;
+
+	public String getTitle() {
+		return title;
 	}
-	private void setSourceAccount(Account sourceAccount) {
-		this.sourceAccount = sourceAccount;
+
+	public void setTitle(String title) {
+		this.title = title;
 	}
-	private BigDecimal getAmount() {
-		return amount;
+
+	public String getDescription() {
+		return description;
 	}
-	private void setAmount(BigDecimal amount) {
-		this.amount = amount;
+
+	public void setDescription(String description) {
+		this.description = description;
 	}
-	private LocalDate getStartDate() {
+
+	public Customer getCustomer() {
+		return customer;
+	}
+
+	public void setCustomer(Customer customer) {
+		this.customer = customer;
+	}
+
+	public LocalDate getStartDate() {
 		return startDate;
 	}
-	private void setStartDate(LocalDate startDate) {
+
+	public void setStartDate(LocalDate startDate) {
 		this.startDate = startDate;
 	}
-	private LocalDate getEndDate() {
+
+	public LocalDate getEndDate() {
 		return endDate;
 	}
-	private void setEndDate(LocalDate endDate) {
+
+	public void setEndDate(LocalDate endDate) {
 		this.endDate = endDate;
 	}
-	private int getIntervalDays() {
-		return intervalDays;
+
+	public BigDecimal getFee() {
+		return fee;
 	}
-	private void setIntervalDays(int intervalDays) {
-		this.intervalDays = intervalDays;
+
+	public void setFee(BigDecimal fee) {
+		this.fee = fee;
 	}
-	private boolean isActive() {
-		return active;
+
+	public Account getChargeAccount() {
+		return chargeAccount;
 	}
-	private void setActive(boolean active) {
-		this.active = active;
+
+	public void setChargeAccount(Account chargeAccount) {
+		this.chargeAccount = chargeAccount;
+	}
+
+	public boolean isActive() {
+		return isActive;
+	}
+
+	public void setActive(boolean isActive) {
+		this.isActive = isActive;
 	}
 	
 	
+	public Account getCreditAccount() {
+		return creditAccount;
+	}
+
+	public void setCreditAccount(Account creditAccount) {
+		this.creditAccount = creditAccount;
+	}
+
+	//Marshal the common variables of TransferOrder and PaymentOrder
+	public String commonMarshal() {
+        return String.format("type:%s,orderId:%s,title:%s,description:%s,customer:%s,startDate:%s,endDate:%s,fee:,chargeAccount:%s",
+                type, orderId, title, description, startDate.toString(), endDate.toString(), fee.toPlainString(), chargeAccount);
+        //have to make startDate and endDate Strings 
+    }
+	
+	//create a map to split the value form : type and link them so it doesn't matter the way it is written in the csv file 
+	public static Map<String, String> parseLine(String line) {
+        Map<String, String> map = new HashMap<>();
+        String[] keyPairs = line.split(",");
+        for (String pair : keyPairs) {
+            String[] entryPair = pair.split(":", 2);
+            if (entryPair.length == 2) {
+                map.put(entryPair[0], entryPair[1]);
+            }
+        }
+        return map;
+    }
+	
+	//Unmarshal the common variables of TransferOrder and PaymentOrder
+	public void commonUnmarshal(Map<String, String> map) {
+        this.orderId = map.get("orderId");
+        this.title = map.get("title");
+        this.description = map.get("description");
+        this.customer = UserManager.getInstance().findUserByVat(map.get("customer"));
+        this.startDate = LocalDate.parse(map.get("startDate"));
+        this.endDate = LocalDate.parse(map.get("endDate"));
+        this.fee = new BigDecimal(map.get("fee"));
+        this.chargeAccount = AccountManager.getInstance().getAccountByIban(map.get("chargeAccount"));
+        this.creditAccount = AccountManager.getInstance().getAccountByIban(map.get("creditAccount"));
+    }
+	
+	
+	public abstract boolean shouldExecute(LocalDate currentDate);
+
+    public abstract List<Transaction> execute(LocalDate currentDate);
+	
+	
+    
+    
     
 }

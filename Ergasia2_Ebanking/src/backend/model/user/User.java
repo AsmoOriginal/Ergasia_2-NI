@@ -1,36 +1,52 @@
 package backend.model.user;
 
-public abstract class User {
-	private String id;               // μοναδικό username ή login ID 
-	private String passwordHash;     // αποθηκευμένο hash του κωδικού 
-	private String role;            // ρόλος χρήστη (π.χ. "admin", "individual", "company") 
+import backend.storage.Storable;
+
+public abstract class User implements Storable{
+	 
+	
 	private String legalName;   // ονοματεπώνυμο ή επωνυμία πελάτη 
 	private String userName;
-	public User(String id, String passwordHash, String role, String legalName, String userName) {
-		this.id = id;
-		this.passwordHash = passwordHash;
-		this.role = role;
+	private String password;     //  κωδικός 
+	private final String type;  // "Individual", "Company", "Admin"
+	
+	
+	
+	public User(String type,String legalName, String userName, String password) {
+		super();
 		this.legalName = legalName;
 		this.userName = userName;
-	}
-	public String getId() {
-		return id;
-	}
-	public String getPasswordHash() {
-		return passwordHash;
-	}
-	public String getRole() {
-		return role;
+		this.password = password;
+		this.type = type;
 	}
 	public String getLegalName() {
 		return legalName;
 	}
+	public void setLegalName(String legalName) {
+		this.legalName = legalName;
+	}
 	public String getUserName() {
 		return userName;
 	}
+	public void setUserName(String userName) {
+		this.userName = userName;
+	}
+	public String getPassword() {
+		return password;
+	}
+	public void setPassword(String password) {
+		this.password = password;
+	}
+    public String getType() {
+		return type;
+	}
 	
-	
+	// Αφηρημένες μέθοδοι για marshal/unmarshal 
+    public abstract String marshal();
+
+    public abstract void unmarshal(String data);
+}
 
 	
 	
-}
+

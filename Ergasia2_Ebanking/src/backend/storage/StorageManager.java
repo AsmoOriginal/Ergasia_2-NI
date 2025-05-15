@@ -2,20 +2,26 @@ package backend.storage;
 
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 
 public class StorageManager {
   private static StorageManager instance;
   private String storagePath;
 
+//Ιδιωτικός constructor για Singleton
   private StorageManager() {
-    this.storagePath = ".data/"; 
+    this.storagePath = "./data/"; 
   }
 
+//Επιστροφή του μοναδικού instance
   public static StorageManager getInstance() {
     if (instance == null) {
       instance = new StorageManager();
@@ -31,50 +37,38 @@ public class StorageManager {
     this.storagePath = storagePath;
   }
 
-  public void save(Storable storable, String fileName) throws IOException {
-	    String filePath = storagePath + fileName;
-	    FileWriter writer =null;
-	    try {
-	      File file = new File(filePath);
-	      if (!file.exists()) {
-	        file.createNewFile();
-	      }
-	      writer = new FileWriter(file);
+//Αποθήκευση πολλών αντικειμένων Storable
+  public void save(List<?> items, String filePath) throws IOException {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
+            for (Object item : items) {
+                String line = item instanceof Storable ? ((Storable) item).marshal() : item.toString();
+                writer.write(line);
+                writer.newLine();
+            }
+        }
+    }
+  
 
-	      writer.write(storable.marshal());
-	    } finally {
-	    	try {
-	    		writer.close();    		
-	    	}catch(IOException ex) {
-	    		
-	    	}
-	    }
-	  }
+  // Φόρτωση πολλών γραμμών από αρχείο (ο καθένας αντιστοιχεί σε ένα αντικείμενο)
+  public List<String> load(String fileName) throws IOException {
+      String filePath = storagePath + fileName;
+      File file = new File(filePath);
+      if (!file.exists()) {
+          throw new FileNotFoundException("File " + filePath + " does not exist");
+      }
+      if (!file.canRead() || !file.isFile()) {
+          throw new IOException("File " + filePath + " cannot be read");
+      }
 
-  public void load(Storable storable, String fileName)
-      throws  IOException, FileNotFoundException {
-    String filePath = storagePath + fileName;
-    File file = new File(filePath);
-    if (!file.exists()) {
-      throw new FileNotFoundException("File " + filePath + " does not exist");
-    }
-    if (!file.canRead() || !file.isFile()) {
-      throw new IOException("File " + filePath + " cannot be read");
-    }
-    BufferedReader fileBufferReader = null;
-    try {
-      fileBufferReader = new BufferedReader(new FileReader(file));
-      String line;
-      StringBuffer sb = new StringBuffer("");
-      while ((line = fileBufferReader.readLine()) != null) {
-        sb.append(line).append("\n");
+      List<String> lines = new ArrayList<>();
+      try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+          String line;
+          while ((line = reader.readLine()) != null) {
+              if (!line.isBlank()) {
+                  lines.add(line);
+              }
+          }
       }
-      storable.unmarshal(sb.toString());
-    } finally {
-      try {
-        fileBufferReader.close();
-      } catch (IOException e) {
-      }
-    }
+      return lines;
   }
 }

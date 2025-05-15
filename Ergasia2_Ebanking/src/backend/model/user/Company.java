@@ -1,22 +1,24 @@
 package backend.model.user;
-import backend.model.account.BusinessAccount;
+
 public class Company extends Customer {
-	private BusinessAccount businessAccount;  // μοναδικός επιχειρηματικός λογαριασμός 	
-
-	public Company(String id, String passwordHash, String role, String legalName, String userName, String vat,
-			BusinessAccount businessAccount) {
-		super(id, passwordHash, role, legalName, userName, vat);
-		this.businessAccount = businessAccount;
+	
+	// Οι εταιρείες επιτρέπεται να έχουν μόνο έναν λογαριασμό (ελέγχεται στον AccountManager).
+	
+	public Company( String legalName, String userName, String password, String vatNumber) {
+		super("Company", legalName, userName, password, vatNumber);
+	}
+	
+	
+	@Override
+	public String marshal() {
+		// Χρήση της υπερκλάσης marshal
+		return super.marshal();
 	}
 
-	public BusinessAccount getBusinessAccount() {
-		return businessAccount;
+	@Override
+	public void unmarshal(String data) {
+		// Χρήση της υπερκλάσης unmarshal
+		super.unmarshal(data);
 	}
-
-	public void setBusinessAccount(BusinessAccount businessAccount) {
-		this.businessAccount = businessAccount;
-	}
-
-
 	
 }
