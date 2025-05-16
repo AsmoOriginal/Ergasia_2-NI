@@ -43,7 +43,7 @@ public class AccountManager {
     public void loadAccountsFromFile() {
         // Φορτώνουμε τους λογαριασμούς από το αρχείο (π.χ. data/accounts.csv)
         try {
-            List<String> lines = storageManager.load("accounts.csv");
+            List<String> lines = storageManager.load("accounts/accounts.csv");
             for (String line : lines) {
                 Account acc = parseAccount(line);
                 if (acc != null) {

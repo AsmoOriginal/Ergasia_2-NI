@@ -40,7 +40,7 @@ public class UserManager {
 	// Φορτώνει τους χρήστες από το αρχείο users.csv
     public void loadUsersFromFile() {
         try {
-            List<String> lines = storageManager.load("users.csv");
+            List<String> lines = storageManager.load("users/users.csv");
             for (String line : lines) {
                 User user = parseUser(line);
                 if (user != null) {

@@ -29,7 +29,7 @@ public class BillManager {
         this.storageManager = StorageManager.getInstance();
         
         // Φόρτωση των λογαριασμών και των πληρωμών από τα αρχεία κατά την εκκίνηση του BillManager
-        loadBillsFromDirectory();
+      //  loadBillsFromDirectory();
     }
     
     
@@ -46,11 +46,11 @@ public class BillManager {
     }
     
     // Μέθοδος για φόρτωση των Bills από όλα τα αρχεία στον φάκελο
-    private void loadBillsFromDirectory() {
+  /*  public void loadBillsFromDirectory() {
         File dir = new File(billsDirectory); // Δημιουργούμε το αντικείμενο του φακέλου
         if (dir.exists() && dir.isDirectory()) {
             // Λαμβάνουμε όλα τα αρχεία .csv από τον φάκελο
-            File[] files = dir.listFiles((d, name) -> name.endsWith(".csv"));
+            File[] files = dir.listFiles((d, name) -> name.endsWith("bills.csv"));
             if (files != null) {
                 for (File file : files) {
                     loadBillsFromFile(file.getName()); // Φορτώνουμε τα δεδομένα από κάθε αρχείο
@@ -60,9 +60,10 @@ public class BillManager {
             System.err.println("The directory 'bill' does not exist.");
         }
     }
-
+    */
+    
     // Μέθοδος για φόρτωση των Bills από ένα συγκεκριμένο αρχείο CSV
-    private void loadBillsFromFile(String fileName) {
+    public void loadBillsFromFile(String fileName) {
         try {
             List<String> lines = storageManager.load(billsDirectory + "/" + fileName); // Διαβάζουμε τις γραμμές από το αρχείο
             for (String line : lines) {

@@ -2,6 +2,7 @@ package frontend;
 
 import backend.manager.*;
 import backend.model.user.User;
+import backend.ui.LoginUI;
 public class MainDriver {
 
 	public static void main(String[] args) {
@@ -16,20 +17,19 @@ public class MainDriver {
         StatementManager statementManager = StatementManager.getInstance();
         TransactionManager transactionManager = TransactionManager.getInstance();
         StandingOrderManager standingOrderManager = StandingOrderManager.getInstance();
-	}
+        
+       // Ταυτοποίηση
+        User loggedInUser = LoginUI.login(userManager);
+        
 	
 	// Φόρτωση δεδομένων από αρχεία
-    userManager.loadUsers("./data/users/users.csv");
-    accountManager.loadAccounts("./data/accounts/accounts.csv");
-    billManager.loadBills("./data/bills.csv");
-    standingOrderManager.loadOrders("./data/orders/active.csv");
+    userManager.loadUsersFromFile();
+    accountManager.loadAccountsFromFile();
+    billManager.loadBillsFromFile("bills.csv");
+   // standingOrderManager.loadInitialData("orders/active.csv");
     // + φόρτωση statements αν θέλουμε
 
- // Διαδικασία Ταυτοποίησης
-    User loggedInUser = LoginUI.login(userManager);
-    if (loggedInUser == null) {
-        System.out.println("Αποτυχία ταυτοποίησης. Τερματισμός...");
-        return;
+ 
     }
  }
-}
+
