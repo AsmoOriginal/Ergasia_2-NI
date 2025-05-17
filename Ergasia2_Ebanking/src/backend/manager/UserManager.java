@@ -1,15 +1,26 @@
 package backend.manager;
 
-import backend.model.user.*;
-import backend.storage.StorageManager;
-
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import backend.model.user.Admin;
+import backend.model.user.Company;
+import backend.model.user.Customer;
+import backend.model.user.Individual;
+import backend.model.user.User;
+import backend.storage.StorageManager;
 
 public class UserManager {
 	private static UserManager instance;   // Singleton instance
 	private final List<User> users; // Λίστα που αποθηκεύει όλους τους χρήστες
+	private Map<String, User> usersByUsername = new HashMap<>();
+	private Map<String, Customer> usersByVat = new HashMap<>();
+
 	private final List<Customer> customers; // Πάλι Λίστα που αποθηκεύει όλους τους χρήστες (θα την χρειαστουμε γισ το model.account)
 	private final StorageManager storageManager; // Χρησιμοποιούμε τον StorageManager για να αποθηκεύσουμε/φορτώσουμε
 
@@ -40,26 +51,52 @@ public class UserManager {
 	// Φορτώνει τους χρήστες από το αρχείο users.csv
     public void loadUsersFromFile() {
         try {
+            
+            
             List<String> lines = storageManager.load("users/users.csv");
+       
+            
+            
             for (String line : lines) {
                 User user = parseUser(line);
                 if (user != null) {
                     users.add(user);
+                    usersByUsername.put(user.getUserName(), user);
+                    if (user instanceof Customer customer) {
+                        usersByVat.put(customer.getVatNumber(), customer);
+                    }
                 }
             }
         } catch (IOException e) {
             System.err.println("Failed to load users: " + e.getMessage());
         }
     }
-
+    
+    
     // Αποθηκεύει όλους τους χρήστες στο αρχείο users.csv
     public void saveUsersToFile() {
         try {
-            storageManager.save(users, "users.csv");
+        	
+        	
+
+        	List<String> lines = users.stream()
+                    .map(User::marshal)
+                    .collect(Collectors.toList());
+            
+            File file = new File("data/users/users.csv");
+            file.getParentFile().mkdirs();
+
+            
+
+            storageManager.save(lines, file.getPath());
+            
         } catch (IOException e) {
-            System.err.println("Failed to save users: " + e.getMessage());
+            System.err.println("ERROR Failed to save users: " + e.getMessage());
         }
     }
+
+    
+    
 
     // Προσθέτει νέο χρήστη
     public void addUser(User user) {
@@ -68,21 +105,15 @@ public class UserManager {
 
     // Επιστρέφει τον χρήστη με βάση το username (ή null αν δεν βρεθεί)
     public User getUserByUsername(String username) {
-        for (User user : users) {
-            if (user.getUserName().equals(username)) {
-                return user;
-            }
-        }
-        return null;
+        if (username == null) return null;
+        return usersByUsername.get(username.toLowerCase());
     }
     
     public Customer findUserByVat(String vatNumber) {
-        for (Customer c : customers) {
-            if (c.getVatNumber().equals(vatNumber)) {
-                return c;
-            }
-        }
-        return null; 
+    	if (vatNumber == null) return null;
+        vatNumber = vatNumber.trim(); // αφαίρεσε τυχόν κενά
+
+        return usersByVat.get(vatNumber);
     }
 
 
@@ -103,24 +134,41 @@ public class UserManager {
     private User parseUser(String data) {
         try {
             String[] parts = data.split(",");
-            String type = parts[0];
-            String legalName = parts[1];
-            String userName = parts[2];
-            String password = parts[3];
+            Map<String, String> fields = new HashMap<>();
+            for (String part : parts) {
+                String[] kv = part.split(":",2);
+                if (kv.length == 2) {
+                    fields.put(kv[0].trim().toLowerCase(), kv[1].trim());
+                }
+            }
 
-            switch (type) {
-                case "Individual":
-                    return new Individual( legalName, userName, password, parts[4]);
-                case "Company":
-                    return new Company( legalName, userName, password, parts[4]);
-                case "Admin":
-                    return new Admin( legalName, userName, password);
+            String type = fields.get("type");
+            String fullName = fields.get("legalname");
+            String username = fields.get("username");
+            String password = fields.get("password");
+            String vat = fields.get("vatnumber");
+
+            if (type == null || fullName == null || username == null || password == null) {
+            	
+            	 
+                return null;
+        }
+            switch (type.toLowerCase()) {
+                case "individual":
+                    return new Individual(fullName, username, password, vat);
+                case "company":
+                    return new Company(fullName, username, password, vat);
+                case "admin":
+                    return new Admin(fullName, username, password);
                 default:
                     System.err.println("Unknown user type: " + type);
             }
         } catch (Exception e) {
-            System.err.println("Error parsing user line: " + data);
+            System.err.println("Error parsing line: " + data);
+            e.printStackTrace();
         }
         return null;
     }
+
+
 }

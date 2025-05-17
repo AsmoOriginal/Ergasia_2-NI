@@ -48,7 +48,7 @@ public class StandingOrderManager {
     }
     
     /*Load the initial data from all the files*/
-    private void loadInitialData(String fileName, OrderGroup group) { 
+    public void loadInitialData(String fileName, OrderGroup group) { 
     	try {
     		
     		List<String> lines = storageManager.load(fileName); 
@@ -100,14 +100,14 @@ public class StandingOrderManager {
     
     /*Χρήση inner class ώστε να υπάρχει εύκολη δημιουργία αντικειμένων paymentOrder και transferOrder για τα active, failed και expired
      * χωρίς να εχουμε πολλές διαφορετικές μεθόδους ώστε να κάνουμε load και save */
-     private static class OrderGroup {
+     public static class OrderGroup {
     	
         List<PaymentOrder> payments = new ArrayList<>();
         List<TransferOrder> transfers = new ArrayList<>();
     }
      
      //φτιάχνουμε το map που θα αντιστοιχίσει strings με τα αντικείμενα της inner class και είναι final για να μη δώσω άλλη αναφορά
-     private final Map<String, OrderGroup> ordersByStatus = new HashMap<>();
+     public final Map<String, OrderGroup> ordersByStatus = new HashMap<>();
 	private Transaction transaction;
     
      

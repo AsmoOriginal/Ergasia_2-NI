@@ -1,6 +1,7 @@
 package backend.ui;
 
 import backend.manager.UserManager;
+import backend.model.user.Customer;
 import backend.model.user.User;
 
 import java.util.Scanner;
@@ -24,7 +25,7 @@ public class LoginUI {
 	                System.out.println("Do you want to retrieve your username with the VatNumber? (y/n)");
 	                String choice = scanner.nextLine();
 	                if (choice.equalsIgnoreCase("y")) {
-	                    System.out.println("Type your VutNumber:");
+	                    System.out.println("Type your VatNumber:");
 	                    String vat = scanner.nextLine();
 	                    user = userManager.findUserByVat(vat);
 	                    if (user != null) {
@@ -48,14 +49,45 @@ public class LoginUI {
 	                return user;
 	            } else {
 	                System.out.println("Wrong Password.");
-	                System.out.println("Do ypu want to change the password? (y/n)");
+	                System.out.println("Do you want to change the password? (y/n)");
 	                String choice = scanner.nextLine();
 	                if (choice.equalsIgnoreCase("y")) {
-	                    System.out.println("Enter new password:");
-	                    String newPassword = scanner.nextLine();
-	                    user.setPassword(newPassword);
-	                    System.out.println("New password has changed saccessfuly.");
-	                    user = null;
+	                    // Επαλήθευση ταυτότητας
+	                    System.out.println("Enter your legal name:");
+	                    String inputName = scanner.nextLine().trim();
+
+	                    System.out.println("Enter your VAT number:");
+	                    String inputVat = scanner.nextLine().trim();
+
+	                    boolean identityConfirmed = true;
+
+	                    if (!user.getLegalName().equalsIgnoreCase(inputName)) {
+	                        System.out.println("ERROR Legal name does not match.");
+	                        identityConfirmed = false;
+	                    }
+
+	                    // Αν είναι πελάτης, επαληθεύουμε το VAT
+	                    if (user instanceof Customer customer) {
+	                        if (!customer.getVatNumber().equals(inputVat)) {
+	                            System.out.println("ERROR VAT number does not match.");
+	                            identityConfirmed = false;
+	                        }
+	                    } else {
+	                        System.out.println("ERROR Only customers can recover with VAT.");
+	                        identityConfirmed = false;
+	                    }
+
+	                    if (identityConfirmed) {
+	                        System.out.println("Identity confirmed. Enter new password:");
+	                        String newPassword = scanner.nextLine();
+	                        user.setPassword(newPassword);
+	                        userManager.saveUsersToFile();
+	                        System.out.println("New password has been set successfully.");
+	                        return login(userManager); // ξεκινάει από την αρχή
+	                    } else {
+	                        System.out.println("Identity verification failed. Password change denied.");
+	                    }
+	                    return login(userManager);
 	                }
 	            }
 	        }
