@@ -87,7 +87,7 @@ public class SignInUI {
 		//save the users to file
 		if(newUser != null) {
 			userManager.addUser(newUser);
-			userManager.saveUsersToFile();
+	//		userManager.saveUsersToFile();
 			System.out.println("New user created");
 			return newUser;
 		}

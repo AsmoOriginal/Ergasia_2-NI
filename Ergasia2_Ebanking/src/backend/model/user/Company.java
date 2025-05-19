@@ -15,10 +15,5 @@ public class Company extends Customer {
 		return super.marshal();
 	}
 
-	@Override
-	public void unmarshal(String data) {
-		// Χρήση της υπερκλάσης unmarshal
-		super.unmarshal(data);
-	}
 	
 }

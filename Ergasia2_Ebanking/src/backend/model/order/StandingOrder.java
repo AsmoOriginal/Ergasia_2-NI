@@ -7,6 +7,7 @@ import backend.model.transaction.Transaction;
 import backend.storage.Storable;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 
 import backend.model.user.Customer;
 
@@ -27,7 +28,13 @@ public abstract class StandingOrder implements Storable{
     private Account creditAccount;
     private boolean isActive;
     
-    //Constructor
+    
+    
+    public StandingOrder() {
+		
+	}
+
+	//Constructor
 	public StandingOrder(String type, String orderId, String title, String description, Customer customer,
 			LocalDate startDate, LocalDate endDate, BigDecimal fee, Account chargeAccount,Account creditAccount, boolean isActive) {
 		super();
@@ -133,12 +140,26 @@ public abstract class StandingOrder implements Storable{
 		this.creditAccount = creditAccount;
 	}
 
-	//Marshal the common variables of TransferOrder and PaymentOrder
-	public String commonMarshal() {
-        return String.format("type:%s,orderId:%s,title:%s,description:%s,customer:%s,startDate:%s,endDate:%s,fee:,chargeAccount:%s",
-                type, orderId, title, description, startDate.toString(), endDate.toString(), fee.toPlainString(), chargeAccount);
-        //have to make startDate and endDate Strings 
-    }
+	@Override
+	public  String marshal() {
+	    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+	    return String.format(
+	        "type=%s,orderId=%s,title=%s,description=%s,customer=%s,startDate=%s,endDate=%s,fee=%s,chargeAccount=%s",
+	        type,
+	        orderId,
+	        title,
+	        description,
+	        customer, 
+	        startDate != null ? startDate.format(formatter) : "null",
+	        endDate != null ? endDate.format(formatter) : "null",
+	        fee != null ? fee.toPlainString() : "0.00",
+	        chargeAccount 
+	    );
+	}
+
+
+
 	
 	//create a map to split the value form : type and link them so it doesn't matter the way it is written in the csv file 
 	public static Map<String, String> parseLine(String line) {
@@ -154,18 +175,33 @@ public abstract class StandingOrder implements Storable{
     }
 	
 	//Unmarshal the common variables of TransferOrder and PaymentOrder
-	public void commonUnmarshal(Map<String, String> map) {
-        this.orderId = map.get("orderId");
-        this.title = map.get("title");
-        this.description = map.get("description");
-        this.customer = UserManager.getInstance().findUserByVat(map.get("customer"));
-        this.startDate = LocalDate.parse(map.get("startDate"));
-        this.endDate = LocalDate.parse(map.get("endDate"));
-        this.fee = new BigDecimal(map.get("fee"));
-        this.chargeAccount = AccountManager.getInstance().getAccountByIban(map.get("chargeAccount"));
-        this.creditAccount = AccountManager.getInstance().getAccountByIban(map.get("creditAccount"));
-    }
-	
+	@Override
+	public void unmarshal(String line) {
+	    Map<String, String> map = parseLine(line);
+
+	    this.type = map.get("type");
+	    this.orderId = map.get("orderId");
+	    this.title = map.get("title");
+	    this.description = map.get("description");
+
+	    // Ανάκτηση πελάτη με VAT μέσω UserManager
+	    String vat = map.get("customer");
+	    this.customer = UserManager.getInstance().findUserByVat(vat);
+
+	    // Ανάκτηση λογαριασμών μέσω IBAN
+	    String chargeIban = map.get("chargeAccount");
+	    this.chargeAccount = AccountManager.getInstance().getAccountByIban(chargeIban);
+
+	    String creditIban = map.get("creditAccount");
+	    this.creditAccount = AccountManager.getInstance().getAccountByIban(creditIban);
+
+	    
+	    
+	    this.fee = new BigDecimal(map.get("fee"));
+	    this.startDate = LocalDate.parse(map.get("startDate"));
+	    this.endDate = LocalDate.parse(map.get("endDate"));
+	}
+
 	
 	public abstract boolean shouldExecute(LocalDate currentDate);
 

@@ -23,6 +23,11 @@ public class PaymentOrder extends StandingOrder {
     private Bill bill;
     
 
+    
+
+	public PaymentOrder() {
+		
+	}
 
 	public PaymentOrder(String type, String orderId, String title, String description, Customer customer,
 			LocalDate startDate, LocalDate endDate, BigDecimal fee, Account chargeAccount, Account creditAccount,
@@ -78,17 +83,20 @@ public class PaymentOrder extends StandingOrder {
     public String marshal() {
         return marshal() + String.format("paymentCode:%s, maxAmount:",paymentCode, maxAmount.toPlainString());
     }
-    @Override
-    public void unmarshal(String line) {
-        Map<String, String> map = parseLine(line);
-        
-        commonUnmarshal(map); 
-        this.paymentCode = map.get("paymentCode");
-        this.maxAmount = new BigDecimal((map.get("maxAmount")));
-        
-    }
-
 	@Override
+	public void unmarshal(String line) {
+	    // Κλήση της unmarshal της StandingOrder
+	    super.unmarshal(line);
+
+	    // Parse για να πιάσουμε τα δικά μας πεδία
+	    Map<String, String> map = parseLine(line);
+
+	    this.paymentCode = map.get("paymentCode");
+	    this.maxAmount = new BigDecimal(map.get("maxAmount"));
+	}
+
+
+	@Override	
 	public boolean shouldExecute(LocalDate paymentDate) {
 		return isActive() && paymentDate.isEqual(getEndDate());
 	}

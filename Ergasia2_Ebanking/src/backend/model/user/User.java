@@ -11,8 +11,13 @@ public abstract class User implements Storable{
 	private String legalName;   // ονοματεπώνυμο ή επωνυμία πελάτη 
 	private String userName;
 	private String password;     //  κωδικός 
-	private final String type;  // "Individual", "Company", "Admin"
+	private  String type;  // "Individual", "Company", "Admin"
 	
+	
+	
+	public User() {
+		
+	}
 	
 	
 	public User(String type,String legalName, String userName, String password) {

@@ -5,9 +5,10 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
-import backend.model.account.Account; 
+import backend.model.account.Account;
+import backend.storage.Storable; 
 
-public abstract class Transaction {
+public abstract class Transaction implements Storable{
 	private final String type; 
     protected Account fromAccount;          // Λογαριασμός χρέωσης (εάν υπάρχει)    
 	protected Account toAccount; // Λογαριασμός πίστωσης (εάν υπάρχει)
@@ -18,7 +19,7 @@ public abstract class Transaction {
     private String transactor; // π.χ. username ή "system"
     
     
-   //ΠΡΕΠΕΙ ΝΑ ΒΑΛΟΥΜΕ TYPE
+   
     
     
    
@@ -105,8 +106,23 @@ public abstract class Transaction {
     }
     
  // Αφηρημένες μέθοδοι για marshal/unmarshal 
-    public abstract Map<String, String>marshal();
+    public abstract String marshal();
 
-    public abstract Transaction unmarshal(Map<String, String> data);
+    public abstract void unmarshal(String data);
+    
+    protected Map<String, String> parseStringToMap(String data) {
+        Map<String, String> map = new HashMap<>();
+        String[] entries = data.split(",");
+
+        for (String entry : entries) {
+            String[] keyValue = entry.split(":", 2); // μόνο το πρώτο :
+            if (keyValue.length == 2) {
+                map.put(keyValue[0].trim(), keyValue[1].trim());
+            }
+        }
+
+        return map;
+    }
+
 }
     

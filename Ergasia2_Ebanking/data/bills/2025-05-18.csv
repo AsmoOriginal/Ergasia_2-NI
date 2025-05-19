@@ -1,0 +1,2 @@
+type:Bill,paymentCode:001,billNumber:RF001,issuer:Cosmote,customer:067688303,amount:100.00,issueDate:2025-05-18,dueDate:2025-06-18,paid:false
+type:Bill,paymentCode:002,billNumber:RF002,issuer:Nova,customer:067688303,amount:150.00,issueDate:2025-05-18,dueDate:2025-06-19,paid:false

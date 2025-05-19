@@ -1,9 +1,9 @@
 package backend.model.transaction;
 
+import backend.manager.AccountManager;
 import backend.model.account.Account;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
 
@@ -68,34 +68,46 @@ public class Deposit extends Transaction {
     }
     
     @Override
-    public Map<String, String> marshal() {
-        Map<String, String> data = new HashMap<>();
-        data.put("id", getId());
-        data.put("type", getType());
-        data.put("fromIban", getFromAccount() != null ? getFromAccount().getIban() : "null");
-        data.put("toIban", getToAccount() != null ? getToAccount().getIban() : "null");
-        data.put("amount", getAmount().toPlainString());
-        data.put("dateTime", getDateTime().toString());
-        data.put("transactor", getTransactor() != null ? getTransactor() : "null");
-        data.put("depositorName", depositorName);
-        return data;
+    public String marshal() {
+        return String.format(
+            "id:%s,type:%s,fromIban:%s,toIban:%s,amount:%s,dateTime:%s,transactor:%s,depositorName:%s",
+            getId(),
+            getType(),
+            getFromAccount() != null ? getFromAccount().getIban() : "null",
+            getToAccount() != null ? getToAccount().getIban() : "null",
+            getAmount().toPlainString(),
+            getDateTime().toString(),
+            getTransactor() != null ? getTransactor() : "null",
+            depositorName != null ? depositorName : "null"
+        );
     }
 
+
     @Override
-    public Transaction unmarshal(Map<String, String> data) {
-        // Δημιουργούμε το αντικείμενο Deposit (Transaction)
+    public void unmarshal(String data) {
+        Map<String, String> map = parseStringToMap(data);
+
         Deposit deposit = new Deposit(
-            backend.manager.AccountManager.getInstance().getAccountByIban(data.get("fromIban")),
-            backend.manager.AccountManager.getInstance().getAccountByIban(data.get("toIban")),
-            new BigDecimal(data.get("amount")),
-            data.get("depositorName")
+            AccountManager.getInstance().getAccountByIban(map.get("fromIban")),
+            AccountManager.getInstance().getAccountByIban(map.get("toIban")),
+            new BigDecimal(map.get("amount")),
+            map.get("depositorName")
         );
 
-        deposit.setId(data.get("id"));
-        deposit.setDateTime(LocalDateTime.parse(data.get("dateTime")));
+        deposit.setId(map.get("id"));
+        deposit.setDateTime(LocalDateTime.parse(map.get("dateTime")));
 
-        // Επιστρέφουμε το αντικείμενο Deposit που υλοποιεί την Transaction
-        return deposit;
+        String transactor = map.get("transactor");
+        deposit.setTransactor("null".equals(transactor) ? null : transactor);
+
+        // Αν χρειάζεται να αποθηκευτεί στο τρέχον αντικείμενο (αν δεν επιστρέφεις το deposit):
+        this.setId(deposit.getId());
+        this.setFromAccount(deposit.getFromAccount());
+        this.setToAccount(deposit.getToAccount());
+        this.setAmount(deposit.getAmount());
+        this.setDateTime(deposit.getDateTime());
+        this.setTransactor(deposit.getTransactor());
+        this.setDepositorName(deposit.getDepositorName());
     }
 
 }

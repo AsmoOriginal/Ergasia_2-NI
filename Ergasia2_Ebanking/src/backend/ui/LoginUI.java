@@ -81,7 +81,7 @@ public class LoginUI {
 	                        System.out.println("Identity confirmed. Enter new password:");
 	                        String newPassword = scanner.nextLine();
 	                        user.setPassword(newPassword);
-	                        userManager.saveUsersToFile();
+	            //            userManager.saveUsersToFile();
 	                        System.out.println("New password has been set successfully.");
 	                        return login(userManager); // ξεκινάει από την αρχή
 	                    } else {

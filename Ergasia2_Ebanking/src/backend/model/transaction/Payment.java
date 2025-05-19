@@ -1,5 +1,7 @@
 package backend.model.transaction;
 
+import backend.manager.AccountManager;
+import backend.manager.BillManager;
 import backend.model.account.Account;
 import backend.model.bill.Bill;
 
@@ -72,36 +74,48 @@ public class Payment extends Transaction {
         return getDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
     }
     
+    
     @Override
-    public Map<String, String> marshal() {
-        Map<String, String> data = new HashMap<>();
-        data.put("id", getId());
-        data.put("type", getType());
-        data.put("fromIban", getFromAccount() != null ? getFromAccount().getIban() : "null");
-        data.put("toIban", getToAccount() != null ? getToAccount().getIban() : "null");
-        data.put("amount", getAmount().toPlainString());
-        data.put("dateTime", getDateTime().toString());
-        data.put("transactor", getTransactor() != null ? getTransactor() : "null");
-        data.put("rfCode", bill != null ? bill.getRfCode() : "null");
-        return data;
-    }
-
-    @Override
-    public Transaction unmarshal(Map<String, String> data) {
-        // Δημιουργία του αντικειμένου Payment (ή άλλης συναλλαγής αν είναι διαφορετική)
-        Payment payment = new Payment(
-            backend.manager.AccountManager.getInstance().getAccountByIban(data.get("fromIban")),
-            backend.manager.AccountManager.getInstance().getAccountByIban(data.get("toIban")),
-            new BigDecimal(data.get("amount")),
-            backend.manager.BillManager.getInstance().getBillByRfCode(data.get("rfCode"))
+    public String marshal() {
+        return String.format(
+            "type:Transaction,id:%s,fromIban:%s,toIban:%s,amount:%s,dateTime:%s,transactor:%s,rfCode:%s",
+            getId(),
+            getFromAccount() != null ? getFromAccount().getIban() : "null",
+            getToAccount() != null ? getToAccount().getIban() : "null",
+            getAmount().toPlainString(),
+            getDateTime().toString(),
+            getTransactor() != null ? getTransactor() : "null",
+            bill != null ? bill.getRfCode() : "null"
         );
-
-        payment.setId(data.get("id"));
-        payment.setDateTime(LocalDateTime.parse(data.get("dateTime")));
-        payment.setTransactor(!"null".equals(data.get("transactor")) ? data.get("transactor") : null);
-
-        // Επιστρέφουμε το αντικείμενο Payment, το οποίο είναι υποκλάση του Transaction
-        return payment;
     }
+    
+
+    
+    @Override
+    public void unmarshal(String data) {
+        Map<String, String> map = parseStringToMap(data);
+
+        Account from = AccountManager.getInstance().getAccountByIban(map.get("fromIban"));
+        Account to = AccountManager.getInstance().getAccountByIban(map.get("toIban"));
+        Bill bill = BillManager.getInstance().getBillByRfCode(map.get("rfCode"));
+
+        if (from == null || to == null) {
+            System.err.println("ERROR Missing account(s) for IBANs: " + map.get("fromIban") + " or " + map.get("toIban"));
+            return;
+        }
+
+        this.setId(map.get("id"));
+        this.setDateTime(LocalDateTime.parse(map.get("dateTime")));
+        this.setTransactor("null".equals(map.get("transactor")) ? null : map.get("transactor"));
+        this.setAmount(new BigDecimal(map.get("amount")));
+        this.setFromAccount(from);
+        this.setToAccount(to);
+        this.setBill(bill);
+    }
+
+	
+
+	
+
 
 }

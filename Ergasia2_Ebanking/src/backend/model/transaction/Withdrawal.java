@@ -1,5 +1,6 @@
 package backend.model.transaction;
 
+import backend.manager.AccountManager;
 import backend.model.account.Account;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -63,36 +64,40 @@ public class Withdrawal extends Transaction {
     }
     
     @Override
-    public Map<String, String> marshal() {
-        Map<String, String> data = new HashMap<>();
-        data.put("id", getId());
-        data.put("type", getType());
-        data.put("fromIban", getFromAccount() != null ? getFromAccount().getIban() : "null");
-        data.put("toIban", "null"); // Δεν υπάρχει toAccount σε Withdrawal
-        data.put("amount", getAmount().toPlainString());
-        data.put("dateTime", getDateTime().toString());
-        data.put("transactor", getTransactor() != null ? getTransactor() : "null");
-        data.put("withdrawalMethod", withdrawalMethod);
-        return data;
+    public String marshal() {
+        return String.join(",",
+            "id:" + getId(),
+            "type:" + getType(),
+            "fromIban:" + (getFromAccount() != null ? getFromAccount().getIban() : "null"),
+            "toIban:null", // Σταθερό null, αφού δεν υπάρχει toAccount
+            "amount:" + getAmount().toPlainString(),
+            "dateTime:" + getDateTime().toString(),
+            "transactor:" + (getTransactor() != null ? getTransactor() : "null"),
+            "withdrawalMethod:" + (withdrawalMethod != null ? withdrawalMethod : "null")
+        );
     }
 
     @Override
-    public Transaction unmarshal(Map<String, String> data) {
-        // Δημιουργούμε το αντικείμενο Withdrawal
+    public void unmarshal(String data) {
+        Map<String, String> map = parseStringToMap(data);
+
         Withdrawal withdrawal = new Withdrawal(
-            backend.manager.AccountManager.getInstance().getAccountByIban(data.get("fromIban")),
-            new BigDecimal(data.get("amount")),
-            data.get("withdrawalMethod")
+            AccountManager.getInstance().getAccountByIban(map.get("fromIban")),
+            new BigDecimal(map.get("amount")),
+            !"null".equals(map.get("withdrawalMethod")) ? map.get("withdrawalMethod") : null
         );
 
-        // Θέτουμε τα υπόλοιπα πεδία
-        withdrawal.setId(data.get("id"));
-        withdrawal.setDateTime(LocalDateTime.parse(data.get("dateTime")));
-        withdrawal.setTransactor(!"null".equals(data.get("transactor")) ? data.get("transactor") : null);
+        withdrawal.setId(map.get("id"));
+        withdrawal.setDateTime(LocalDateTime.parse(map.get("dateTime")));
+        withdrawal.setTransactor(!"null".equals(map.get("transactor")) ? map.get("transactor") : null);
 
-        // Επιστρέφουμε το αντικείμενο Withdrawal
-        return withdrawal;
+        // Αν γεμίζεις το ίδιο object:
+        this.setId(withdrawal.getId());
+        this.setFromAccount(withdrawal.getFromAccount());
+        this.setAmount(withdrawal.getAmount());
+        this.setDateTime(withdrawal.getDateTime());
+        this.setTransactor(withdrawal.getTransactor());
+        this.setWithdrawalMethod(withdrawal.getWithdrawalMethod());
     }
-
 
 }

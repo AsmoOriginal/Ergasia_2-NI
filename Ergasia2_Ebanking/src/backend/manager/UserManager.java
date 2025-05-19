@@ -1,34 +1,28 @@
 package backend.manager;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import java.io.*;
+import java.util.*;
 
 import backend.model.user.Admin;
 import backend.model.user.Company;
 import backend.model.user.Customer;
 import backend.model.user.Individual;
 import backend.model.user.User;
-import backend.storage.StorageManager;
 
-public class UserManager {
+
+public class UserManager  {
 	private static UserManager instance;   // Singleton instance
 	private final List<User> users; // Λίστα που αποθηκεύει όλους τους χρήστες
 	private Map<String, User> usersByUsername = new HashMap<>();
 	private Map<String, Customer> usersByVat = new HashMap<>();
 
-	private final List<Customer> customers; // Πάλι Λίστα που αποθηκεύει όλους τους χρήστες (θα την χρειαστουμε γισ το model.account)
-	private final StorageManager storageManager; // Χρησιμοποιούμε τον StorageManager για να αποθηκεύσουμε/φορτώσουμε
+	private  List<Customer> customers; 
+	
 
 	// Ιδιωτικός constructor για το Singleton pattern
     private UserManager() {
     	this.customers = new ArrayList<>();
         this.users = new ArrayList<>();
-        this.storageManager = StorageManager.getInstance();
     }
 
     // Μέθοδος για να πάρουμε το μοναδικό instance του UserManager
@@ -39,6 +33,40 @@ public class UserManager {
         return instance;
     }
 
+    
+    public void loadUsersFromFile(String filePath) {
+        File file = new File(filePath);
+        if (!file.exists()) return;
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                User user = parseLine(line);
+                if (user != null) {
+                    users.add(user);
+                    usersByUsername.put(user.getUserName().toLowerCase(), user);
+                    if (user instanceof Customer customer) {
+                        customers.add(customer);
+                        usersByVat.put(customer.getVatNumber(), customer);
+                    }
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("Error loading users: " + e.getMessage());
+        }
+    }
+    
+    public void saveUsersToFile(String filePath) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
+            for (User user : users) {
+                writer.write(user.marshal());
+                writer.newLine();
+            }
+        } catch (IOException e) {
+            System.err.println("Error saving users: " + e.getMessage());
+        }
+    }
+    
     // Επιστρέφει τη λίστα των χρηστών
     public List<User> getUsers() {
         return users;
@@ -47,55 +75,6 @@ public class UserManager {
 		return customers;
 	}
 
-    
-	// Φορτώνει τους χρήστες από το αρχείο users.csv
-    public void loadUsersFromFile() {
-        try {
-            
-            
-            List<String> lines = storageManager.load("users/users.csv");
-       
-            
-            
-            for (String line : lines) {
-                User user = parseUser(line);
-                if (user != null) {
-                    users.add(user);
-                    usersByUsername.put(user.getUserName(), user);
-                    if (user instanceof Customer customer) {
-                        usersByVat.put(customer.getVatNumber(), customer);
-                    }
-                }
-            }
-        } catch (IOException e) {
-            System.err.println("Failed to load users: " + e.getMessage());
-        }
-    }
-    
-    
-    // Αποθηκεύει όλους τους χρήστες στο αρχείο users.csv
-    public void saveUsersToFile() {
-        try {
-        	
-        	
-
-        	List<String> lines = users.stream()
-                    .map(User::marshal)
-                    .collect(Collectors.toList());
-            
-            File file = new File("data/users/users.csv");
-            file.getParentFile().mkdirs();
-
-            
-
-            storageManager.save(lines, file.getPath());
-            
-        } catch (IOException e) {
-            System.err.println("ERROR Failed to save users: " + e.getMessage());
-        }
-    }
-
-    
     
 
     // Προσθέτει νέο χρήστη
@@ -129,9 +108,10 @@ public class UserManager {
                 .findFirst()
                 .orElse(null);
     }
-    
+
+
  // Δημιουργεί αντικείμενο User από γραμμή αρχείου
-    private User parseUser(String data) {
+    private User parseLine(String data) {
         try {
             String[] parts = data.split(",");
             Map<String, String> fields = new HashMap<>();
@@ -169,6 +149,5 @@ public class UserManager {
         }
         return null;
     }
-
 
 }

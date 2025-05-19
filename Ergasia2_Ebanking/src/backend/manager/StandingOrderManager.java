@@ -1,5 +1,7 @@
 package backend.manager;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -13,12 +15,13 @@ import backend.model.order.TransferOrder;
 import backend.model.transaction.Payment;
 import backend.model.transaction.Transaction;
 import backend.model.transaction.Transfer;
+import backend.storage.Storable;
 import backend.storage.StorageManager;
 
 public class StandingOrderManager {
 	
 	private static StandingOrderManager instance;
-    private final StorageManager storageManager;
+  
     private final TransactionManager transactionManager;
     private final AccountManager accountManager;
     
@@ -26,18 +29,14 @@ public class StandingOrderManager {
     //Singleton
     private StandingOrderManager() {
        
-        this.storageManager = StorageManager.getInstance();
+        
         this.transactionManager = TransactionManager.getInstance();
         this.accountManager = AccountManager.getInstance();
         
         ordersByStatus.put("active", new OrderGroup());
         ordersByStatus.put("expired", new OrderGroup());
         ordersByStatus.put("failed", new OrderGroup());
-        
-        loadInitialData("orders/active.csv", ordersByStatus.get("active"));
-        loadInitialData("orders/expired.csv", ordersByStatus.get("expired"));
-        loadInitialData("orders/failed.csv", ordersByStatus.get("failed"));
-        
+   
     }
 
     public static StandingOrderManager getInstance() {
@@ -47,56 +46,8 @@ public class StandingOrderManager {
         return instance;
     }
     
-    /*Load the initial data from all the files*/
-    public void loadInitialData(String fileName, OrderGroup group) { 
-    	try {
-    		
-    		List<String> lines = storageManager.load(fileName); 
-            for (String line : lines) {
-            	//check if we have empty lines and skip them
-            	if(line.trim().isEmpty()) {
-            		continue;
-            	}
-            	
-                if (line.contains("PAYMENT")) /* line.contains() method is used to search for a sequence of characters within the list of strings */{
-                	PaymentOrder paymentOrder = PaymentOrder.fromLine(line);
-                	group.payments.add(paymentOrder);//add it to the array of payments
-                } else if (line.contains("TRANSFER")) {
-                	TransferOrder transferOrder = TransferOrder.fromLine(line);
-                	group.transfers.add(transferOrder);//add it to the array of transfers
-                }
-            }
-        } catch (IOException e) {
-            System.err.println("Error loading " + fileName + e.getMessage());
-        }
-    }
+   
     
-    private void saveOrders() {
-        StorageManager storage = StorageManager.getInstance();
-        /*Iterate to all the entries of the Map*/
-        for (Map.Entry<String, OrderGroup> entry : ordersByStatus.entrySet()) {
-            String status = entry.getKey(); 
-            OrderGroup group = entry.getValue();
-
-            List<String> lines = new ArrayList<>();
-
-            for (PaymentOrder orderPay : group.payments) {
-                lines.add(orderPay.marshal());
-            }
-
-            for (TransferOrder orderTransfer : group.transfers) {
-                lines.add(orderTransfer.marshal());
-            }
-
-            try {
-                storage.save(lines, "orders/" + status + ".csv");
-            } catch (IOException e) {
-                System.err.println("Error saving " + status + " orders : " + e.getMessage());
-            }
-        }
-        
-       
-    }
     
     /*Χρήση inner class ώστε να υπάρχει εύκολη δημιουργία αντικειμένων paymentOrder και transferOrder για τα active, failed και expired
      * χωρίς να εχουμε πολλές διαφορετικές μεθόδους ώστε να κάνουμε load και save */
@@ -109,7 +60,71 @@ public class StandingOrderManager {
      //φτιάχνουμε το map που θα αντιστοιχίσει strings με τα αντικείμενα της inner class και είναι final για να μη δώσω άλλη αναφορά
      public final Map<String, OrderGroup> ordersByStatus = new HashMap<>();
 	private Transaction transaction;
-    
+  
+	
+	public void loadOrders(String filePath, StorageManager storageManager) {
+	    List<StandingOrder> loadedOrders = storageManager.load(StandingOrder.class, filePath);
+
+	    OrderGroup active = ordersByStatus.get("active");
+	    OrderGroup expired = ordersByStatus.get("expired");
+	    OrderGroup failed = ordersByStatus.get("failed");
+
+	    // Καθαρίζεις πρώτα τις λίστες (αν θες)
+	    active.payments.clear();
+	    active.transfers.clear();
+	    expired.payments.clear();
+	    expired.transfers.clear();
+	    failed.payments.clear();
+	    failed.transfers.clear();
+
+	    for (StandingOrder order : loadedOrders) {
+	        // Ανάλογα με το status του order, βάλε το στη σωστή λίστα
+	        String status = order.isActive(); // πχ "active", "expired", "failed"
+	        OrderGroup group = ordersByStatus.get(status);
+
+	        if (order instanceof PaymentOrder) {
+	            group.payments.add((PaymentOrder) order);
+	        } else if (order instanceof TransferOrder) {
+	            group.transfers.add((TransferOrder) order);
+	        }
+	    }
+	}
+
+	
+	public void saveOrders(String filePath) {
+	    List<Storable> allOrders = new ArrayList<>();
+
+	    OrderGroup active = ordersByStatus.get("active");
+	    if (active != null) {
+	        allOrders.addAll(active.payments);
+	        allOrders.addAll(active.transfers);
+	    }
+
+	    OrderGroup expired = ordersByStatus.get("expired");
+	    if (expired != null) {
+	        allOrders.addAll(expired.payments);
+	        allOrders.addAll(expired.transfers);
+	    }
+
+	    OrderGroup failed = ordersByStatus.get("failed");
+	    if (failed != null) {
+	        allOrders.addAll(failed.payments);
+	        allOrders.addAll(failed.transfers);
+	    }
+
+	    try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath, false))) {
+	        for (Storable order : allOrders) {
+	            writer.write(order.marshal());
+	            writer.newLine();
+	        }
+	    } catch (IOException e) {
+	        System.err.println("[ERROR] Failed to save orders to file: " + filePath);
+	        e.printStackTrace();
+	    }
+	}
+
+
+
      
     //Kάνε execute τα orders για μια συγκεκριμένη ημερομηνία "date"
      public void executeOrdersForDate(LocalDate date) {
@@ -168,7 +183,7 @@ public class StandingOrderManager {
     	            }
     			
     	            success = true;
-    	            saveOrders(); // αποθηκεύει επιτυχημένες αλλαγές
+    	           saveOrders("ordes/active.csv"); // αποθηκεύει επιτυχημένες αλλαγές
     			
 			} catch (Exception e) {
 				attempts++;
@@ -224,7 +239,7 @@ public class StandingOrderManager {
     	        currentDate = currentDate.plusDays(1);
     	    }
     	    
-    	    saveOrders();
+    	   saveOrders("order/active.csv");
     	}
 
     	private boolean isLastDayOfMonth(LocalDate date) {

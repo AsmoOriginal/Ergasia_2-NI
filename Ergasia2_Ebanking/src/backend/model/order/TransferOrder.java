@@ -25,6 +25,12 @@ public class TransferOrder extends StandingOrder {
 
 	
 
+	
+
+	public TransferOrder() {
+		
+	}
+
 	public TransferOrder( String orderId, String title, String description, Customer customer,
 			LocalDate startDate, LocalDate endDate, BigDecimal fee, Account chargeAccount, Account creditAccount,
 			boolean isActive, BigDecimal amount, int frequencyInMonths, int dayOfMonth, String senderNote,
@@ -96,14 +102,17 @@ public class TransferOrder extends StandingOrder {
 
 	@Override
     public String marshal() {
-        return commonMarshal() + String.format("amount:, creditAccount:%s, frequencyInMonths:%d, dayOfMonth:%d ", amount.toPlainString(), getCreditAccount(), 
+        return marshal() + String.format("amount:, creditAccount:%s, frequencyInMonths:%d, dayOfMonth:%d ", amount.toPlainString(), getCreditAccount(), 
                 frequencyInMonths, dayOfMonth);
     }
-    @Override
-    public void unmarshal(String line) {
-        Map<String, String> map = parseLine(line);
-        
-        commonUnmarshal(map); 
+	@Override
+	public void unmarshal(String line) {
+	    // Κλήση της unmarshal της StandingOrder
+	    super.unmarshal(line);
+
+	    // Parse για να πιάσουμε τα δικά μας πεδία
+	    Map<String, String> map = parseLine(line);
+
         this.amount =  new BigDecimal((map.get("amount")));
         this.frequencyInMonths = Integer.parseInt(map.get("frequencyInMonths"));
         this.dayOfMonth = Integer.parseInt(map.get("dayOfMonth"));

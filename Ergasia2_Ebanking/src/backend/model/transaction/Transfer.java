@@ -1,5 +1,6 @@
 package backend.model.transaction;
 
+import backend.manager.AccountManager;
 import backend.model.account.Account; 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -81,37 +82,46 @@ public class Transfer extends Transaction {
 	}
 
 	@Override
-	public Map<String, String> marshal() {
-	    Map<String, String> data = new HashMap<>();
-	    data.put("id", getId());
-	    data.put("type", getType());
-	    data.put("fromIban", getFromAccount() != null ? getFromAccount().getIban() : "null");
-	    data.put("toIban", getToAccount() != null ? getToAccount().getIban() : "null");
-	    data.put("amount", getAmount().toPlainString());
-	    data.put("dateTime", getDateTime().toString());
-	    data.put("transactor", getTransactor() != null ? getTransactor() : "null");
-	    data.put("senderNote", senderNote != null ? senderNote : "null");
-	    data.put("receiverNote", receiverNote != null ? receiverNote : "null");
-	    return data;
+	public String marshal() {
+	    return String.join(",",
+	        "id:" + getId(),
+	        "type:" + getType(),
+	        "fromIban:" + (getFromAccount() != null ? getFromAccount().getIban() : "null"),
+	        "toIban:" + (getToAccount() != null ? getToAccount().getIban() : "null"),
+	        "amount:" + getAmount().toPlainString(),
+	        "dateTime:" + getDateTime().toString(),
+	        "transactor:" + (getTransactor() != null ? getTransactor() : "null"),
+	        "senderNote:" + (senderNote != null ? senderNote : "null"),
+	        "receiverNote:" + (receiverNote != null ? receiverNote : "null")
+	    );
 	}
 
+
 	@Override
-	public Transaction unmarshal(Map<String, String> data) {
-	    // Δημιουργία του αντικειμένου Transfer (ή άλλης συναλλαγής αν είναι διαφορετική)
+	public void unmarshal(String data) {
+	    Map<String, String> map = parseStringToMap(data);
+
 	    Transfer transfer = new Transfer(
-	        backend.manager.AccountManager.getInstance().getAccountByIban(data.get("fromIban")),
-	        backend.manager.AccountManager.getInstance().getAccountByIban(data.get("toIban")),
-	        new BigDecimal(data.get("amount")),
-	        !"null".equals(data.get("senderNote")) ? data.get("senderNote") : null,
-	        !"null".equals(data.get("receiverNote")) ? data.get("receiverNote") : null
+	        AccountManager.getInstance().getAccountByIban(map.get("fromIban")),
+	        AccountManager.getInstance().getAccountByIban(map.get("toIban")),
+	        new BigDecimal(map.get("amount")),
+	        !"null".equals(map.get("senderNote")) ? map.get("senderNote") : null,
+	        !"null".equals(map.get("receiverNote")) ? map.get("receiverNote") : null
 	    );
 
-	    transfer.setId(data.get("id"));
-	    transfer.setDateTime(LocalDateTime.parse(data.get("dateTime")));
-	    transfer.setTransactor(!"null".equals(data.get("transactor")) ? data.get("transactor") : null);
+	    transfer.setId(map.get("id"));
+	    transfer.setDateTime(LocalDateTime.parse(map.get("dateTime")));
+	    transfer.setTransactor(!"null".equals(map.get("transactor")) ? map.get("transactor") : null);
 
-	    // Επιστροφή του αντικειμένου Transfer
-	    return transfer;
+	    // Αν δεν επιστρέφεις αντικείμενο αλλά γεμίζεις το τρέχον instance
+	    this.setId(transfer.getId());
+	    this.setFromAccount(transfer.getFromAccount());
+	    this.setToAccount(transfer.getToAccount());
+	    this.setAmount(transfer.getAmount());
+	    this.setDateTime(transfer.getDateTime());
+	    this.setTransactor(transfer.getTransactor());
+	    this.setSenderNote(transfer.getSenderNote());
+	    this.setReceiverNote(transfer.getReceiverNote());
 	}
 
     }

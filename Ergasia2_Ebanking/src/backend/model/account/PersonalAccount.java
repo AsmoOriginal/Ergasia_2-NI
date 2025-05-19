@@ -13,9 +13,13 @@ import backend.model.user.Customer;
 public class PersonalAccount extends Account {
 	private List<String> secondaryHolders; // Δευτερεύοντες κάτοχοι (μόνο φυσικά πρόσωπα)
 
-	
+	//default constructor
+	public PersonalAccount() {
+	    super("PersonalAccount", "", null, LocalDate.now(), BigDecimal.ZERO, BigDecimal.ZERO);
+	    this.secondaryHolders = new ArrayList<>();
+	}
 
-	public PersonalAccount(Customer primaryOwner, BigDecimal interestRate,  List<String> secondaryHolders) {
+	public PersonalAccount(String primaryOwner, BigDecimal interestRate,  List<String> secondaryHolders) {
 		super("PersonalAccount", generateIban("100"), primaryOwner, LocalDate.now(), interestRate, BigDecimal.ZERO);
 		this.secondaryHolders = (secondaryHolders != null) ? secondaryHolders : new ArrayList<>();
 	}
@@ -41,7 +45,7 @@ public class PersonalAccount extends Account {
 	        StringBuilder sb = new StringBuilder();
 	        sb.append("type:PersonalAccount");
 	        sb.append(",iban:").append(iban);
-	        sb.append(",primaryOwner:").append(primaryOwner.getVatNumber());
+	        sb.append(",primaryOwner:").append(primaryOwner);
 	        sb.append(",dateCreated:").append(dateCreated.format(DATE_FORMAT));
 	        sb.append(",rate:").append(interestRate);
 	        sb.append(",balance:").append(balance);
@@ -77,7 +81,7 @@ public class PersonalAccount extends Account {
                }
 	        }
 	        this.iban = iban;
-	        this.primaryOwner = (Customer) backend.manager.UserManager.getInstance().findUserByVat(vat); // Επιστρέφει Customer
+	        this.primaryOwner = vat; 
 	        this.dateCreated = date;
 	        this.interestRate = rate;
 	        this.balance = balance;

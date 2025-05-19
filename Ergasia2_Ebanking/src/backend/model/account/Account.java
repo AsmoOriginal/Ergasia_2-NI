@@ -5,15 +5,14 @@ import java.math.MathContext;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
-import backend.model.user.Customer;
 import backend.storage.Storable;
 
 
 
 public abstract class Account implements Storable {
-	private final String type;  // "BusinessAccount" , "PrivateAccount"
+	private  String type;  // "BusinessAccount" , "PrivateAccount"
 	protected String iban;    // Μοναδικός 20ψήφιος κωδικός (παράγεται από το σύστημα) 
-	protected Customer primaryOwner; // Κύριος κάτοχος (VatNumber για αυτο ειναι Customer και οχι String) 
+	protected String primaryOwner; // Κύριος κάτοχος (VatNumber για αυτο ειναι Customer και οχι String) 
 	protected LocalDate dateCreated;
 	protected BigDecimal interestRate;
 	protected BigDecimal balance;           // Τρέχον υπόλοιπο     
@@ -21,7 +20,12 @@ public abstract class Account implements Storable {
 	private static  long nextId = 100000000000000L;
 	
 	
-	public Account(String type, String iban, Customer primaryOwner, LocalDate dateCreated, BigDecimal interestRate,
+	
+	public Account() {
+	
+	}
+
+	public Account(String type, String iban, String primaryOwner, LocalDate dateCreated, BigDecimal interestRate,
 			BigDecimal balance) {
 		super();
 		this.type = type;
@@ -30,13 +34,13 @@ public abstract class Account implements Storable {
 		this.dateCreated = dateCreated;
 		this.interestRate = interestRate;
 		this.balance = balance;
-		this.accruedInterest = BigDecimal.ZERO; 
+		 
 	}
 	
-	public Customer getPrimaryOwner() {
+	public String getPrimaryOwner() {
 		return primaryOwner;
 	}
-	public void setPrimaryOwner(Customer primaryOwner) {
+	public void setPrimaryOwner(String primaryOwner) {
 		this.primaryOwner = primaryOwner;
 	}
 	public BigDecimal getInterestRate() {
@@ -70,7 +74,9 @@ public abstract class Account implements Storable {
 	    return accruedInterest;
 	}
 	
-	
+	public void setIban(String iban) {
+		this.iban = iban;
+	}
 
 	public static void setNextId(long nextId) {
 		Account.nextId = nextId;

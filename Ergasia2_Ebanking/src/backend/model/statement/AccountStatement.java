@@ -2,6 +2,7 @@ package backend.model.statement;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -12,14 +13,14 @@ import backend.manager.AccountManager;
 import backend.manager.BillManager;
 import backend.model.account.Account;
 import backend.model.account.PersonalAccount;
-import backend.model.bill.Bill;
 import backend.model.transaction.Deposit;
 import backend.model.transaction.Payment;
 import backend.model.transaction.Transaction;
 import backend.model.transaction.Transfer;
 import backend.model.transaction.Withdrawal;
+import backend.storage.Storable;
 
-public class AccountStatement {
+public class AccountStatement implements Storable {
 	private Account account;   // Ο λογαριασμός για τον οποίο αφορά η κατάσταση               
 	private LocalDate fromDate;  // Αρχική ημερομηνία του διαστήματος             
 	private LocalDate toDate;    // Τελική ημερομηνία του διαστήματος 
@@ -87,119 +88,145 @@ public class AccountStatement {
         return balance;
     }
 	
+ 
  // Μέθοδος marshal για να μετατρέψουμε το AccountStatement σε συμβολοσειρά
+    @Override
     public String marshal() {
         StringBuilder sb = new StringBuilder();
-        
-        // Χρησιμοποιούμε DateTimeFormatter για να μετατρέψουμε τις ημερομηνίες σε string
+
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+        sb.append("type:").append(account instanceof PersonalAccount ? "Personal" : "Business").append(",");
+        sb.append("iban:").append(account.getIban()).append(",");
+        sb.append("from:").append(fromDate.format(formatter)).append(",");
+        sb.append("to:").append(toDate.format(formatter)).append(",");
         
-        // Προσθήκη δεδομένων στο string
-        sb.append(account instanceof PersonalAccount ? "Personal" : "Business").append(",");
-        sb.append(account.getIban()).append(","); 
-        sb.append(fromDate.format(formatter)).append(",");
-        sb.append(toDate.format(formatter)).append(",");
-        
-        
+        sb.append("transactions:");
+
         for (Transaction transaction : transactions) {
-            sb.append(transaction.marshal()).append(";"); // πρέπει κάθε transaction να έχει marshal μέθοδο για να λειτουργήσει
-        }
-        
-        if (!transactions.isEmpty()) {
-            sb.setLength(sb.length() - 1); // Αφαίρεση του τελευταίου ;
+            sb.append("{").append(transaction.marshal()).append("}");  // περικλείουμε κάθε transaction σε {} για ασφαλές split
         }
 
-        
         return sb.toString();
     }
+
     
- // Μέθοδος unmarshal για να αναδημιουργήσουμε το AccountStatement από δεδομένα
-    public static AccountStatement unmarshal(String data) {
-        if (data == null || data.trim().isEmpty()) return null;
 
-        try {
-            // Χωρίζουμε το data σε ζεύγη "key:value"
-            String[] pairs = data.split(",");
-            Map<String, String> map = new HashMap<>();
-
-            for (String pair : pairs) {
-                String[] keyValue = pair.split(":", 2);
-                if (keyValue.length == 2) {
-                    map.put(keyValue[0].trim(), keyValue[1].trim());
-                }
+        // Μέθοδος που ενημερώνει το τρέχον αντικείμενο με δεδομένα
+        @Override
+        public void unmarshal(String data) {
+            AccountStatement newObj = fromString(data);
+            if (newObj == null) {
+                System.err.println("Failed to unmarshal AccountStatement.");
+                return;
             }
 
-            String iban = map.get("iban");
-            LocalDate fromDate = LocalDate.parse(map.get("from"));
-            LocalDate toDate = LocalDate.parse(map.get("to"));
-
-            Account account = AccountManager.getInstance().getAccountByIban(iban);
-            if (account == null) {
-                throw new IllegalArgumentException("Account with IBAN " + iban + " not found.");
-            }
-
-            List<Transaction> transactions = new ArrayList<>();
-            String transactionsRaw = map.get("transactions");
-            if (transactionsRaw != null && !transactionsRaw.isEmpty()) {
-                // Διαχωρισμός συναλλαγών αν χωρίζονται με ','
-                String[] transactionStrings = transactionsRaw.split(",");
-                for (String txStr : transactionStrings) {
-                    // Δημιουργούμε το Map<String, String> από τα δεδομένα της συναλλαγής
-                    Map<String, String> txMap = new HashMap<>();
-                    txMap.put("transactionData", txStr); // Το transactionStr μπορεί να είναι όλο το string της συναλλαγής
-
-                    // Εδώ θα πρέπει να ξέρουμε ποια υποκλάση να καλέσουμε για να αναγνωρίσουμε τη συναλλαγή.
-                    // Αν το 'txStr' περιλαμβάνει κάποια πληροφορία που δείχνει τον τύπο της συναλλαγής (π.χ. "Withdrawl", "Payment", κ.λπ.),
-                    // μπορούμε να το χρησιμοποιήσουμε για να δημιουργήσουμε το κατάλληλο αντικείμενο
-
-                    String type = txMap.get("transactionData").split(":")[0]; // Αν υπάρχει πεδίο type στον string
-
-                    Transaction tx = null;
-                    if ("Deposit".equalsIgnoreCase(type)) {
-                        String fromIban = map.get("fromIban");
-                        String toIban = map.get("toIban");
-                        BigDecimal amount = new BigDecimal(map.get("amount"));
-                        String depositorName = map.get("depositorName");
-                        tx = new Deposit(AccountManager.getInstance().getAccountByIban(fromIban),
-                                         AccountManager.getInstance().getAccountByIban(toIban),
-                                         amount, depositorName);
-                    } else if ("Payment".equalsIgnoreCase(type)) {
-                        String fromIban = map.get("fromIban");
-                        String toIban = map.get("toIban");
-                        BigDecimal amount = new BigDecimal(map.get("amount"));
-                        String rfCode = map.get("rfCode");
-                        Bill bill = BillManager.getInstance().getBillByRfCode(rfCode);
-                        tx = new Payment(AccountManager.getInstance().getAccountByIban(fromIban),
-                                         AccountManager.getInstance().getAccountByIban(toIban),
-                                         amount, bill);
-                    } else if ("Transfer".equalsIgnoreCase(type)) {
-                        String fromIban = map.get("fromIban");
-                        String toIban = map.get("toIban");
-                        BigDecimal amount = new BigDecimal(map.get("amount"));
-                        String senderNote = map.get("senderNote");
-                        String receiverNote = map.get("receiverNote");
-                        tx = new Transfer(AccountManager.getInstance().getAccountByIban(fromIban),
-                                          AccountManager.getInstance().getAccountByIban(toIban),
-                                          amount, senderNote, receiverNote);
-                    } else if ("Withdrawal".equalsIgnoreCase(type)) {  // Προσοχή στο "Withdrawal" με το λάθος spelling!
-                        String fromIban = map.get("fromIban");
-                        BigDecimal amount = new BigDecimal(map.get("amount"));
-                        String withdrawalMethod = map.get("withdrawalMethod");
-                        tx = new Withdrawal(AccountManager.getInstance().getAccountByIban(fromIban), amount, withdrawalMethod);
-                    }
-
-                    if (tx != null) {
-                        transactions.add(tx);
-                    }
-                }
-            }
-
-            return new AccountStatement(account, fromDate, toDate, transactions);
-
-        } catch (Exception e) {
-            System.err.println("Error while unmarshalling AccountStatement: " + e.getMessage());
-            return null;
+            this.account = newObj.account;
+            this.fromDate = newObj.fromDate;
+            this.toDate = newObj.toDate;
+            this.transactions = newObj.transactions;
         }
+        
+     // Static μέθοδος που φτιάχνει AccountStatement από String
+        public static AccountStatement fromString(String data) {
+            if (data == null || data.trim().isEmpty()) return null;
+
+            try {
+                String[] parts = data.split(",", 5); 
+                // 5 μέρη: type, iban, fromDate, toDate, transactionsString
+
+                if (parts.length < 5) {
+                    System.err.println("Invalid data format for AccountStatement.");
+                    return null;
+                }
+
+                //[0] = type
+                String iban = parts[1];
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+                LocalDate fromDate = LocalDate.parse(parts[2], formatter);
+                LocalDate toDate = LocalDate.parse(parts[3], formatter);
+
+                Account account = AccountManager.getInstance().getAccountByIban(iban);
+                if (account == null) {
+                    System.err.println("Account with IBAN " + iban + " not found.");
+                    return null;
+                }
+
+                List<Transaction> transactions = new ArrayList<>();
+                String transactionsRaw = parts[4];
+                if (!transactionsRaw.isEmpty()) {
+                    // Κάθε transaction είναι χωρισμένο με ';' (όπως στο marshal)
+                    String[] txStrings = transactionsRaw.split(";");
+
+                    for (String txStr : txStrings) {
+                        
+                        Map<String, String> txData = parseStringToMap(txStr);
+
+                        // Παίρνεις τον τύπο
+                        String txType = txData.get("type");
+                        Transaction tx = null;
+
+                        if ("Payment".equalsIgnoreCase(txType)) {
+                            tx = new Payment(
+                                AccountManager.getInstance().getAccountByIban(txData.get("fromIban")),
+                                AccountManager.getInstance().getAccountByIban(txData.get("toIban")),
+                                new BigDecimal(txData.get("amount")),
+                                BillManager.getInstance().getBillByRfCode(txData.get("rfCode"))
+                            );
+                        } else if ("Deposit".equalsIgnoreCase(txType)) {
+                            tx = new Deposit(
+                                AccountManager.getInstance().getAccountByIban(txData.get("fromIban")),
+                                AccountManager.getInstance().getAccountByIban(txData.get("toIban")),
+                                new BigDecimal(txData.get("amount")),
+                                txData.get("depositorName")
+                            );
+                        } else if ("Transfer".equalsIgnoreCase(txType)) {
+                            tx = new Transfer(
+                                AccountManager.getInstance().getAccountByIban(txData.get("fromIban")),
+                                AccountManager.getInstance().getAccountByIban(txData.get("toIban")),
+                                new BigDecimal(txData.get("amount")),
+                                "null".equals(txData.get("senderNote")) ? null : txData.get("senderNote"),
+                                "null".equals(txData.get("receiverNote")) ? null : txData.get("receiverNote")
+                            );
+                        } else if ("Withdrawal".equalsIgnoreCase(txType)) {
+                            tx = new Withdrawal(
+                                AccountManager.getInstance().getAccountByIban(txData.get("fromIban")),
+                                new BigDecimal(txData.get("amount")),
+                                txData.get("withdrawalMethod")
+                            );
+                        }
+
+                        if (tx != null) {
+                            tx.setId(txData.get("id"));
+                            tx.setDateTime(LocalDateTime.parse(txData.get("dateTime")));
+                            String transactor = txData.get("transactor");
+                            tx.setTransactor("null".equals(transactor) ? null : transactor);
+
+                            transactions.add(tx);
+                        }
+                    }
+                }
+
+                return new AccountStatement(account, fromDate, toDate, transactions);
+
+            } catch (Exception e) {
+                System.err.println("Error unmarshalling AccountStatement: " + e.getMessage());
+                e.printStackTrace();
+                return null;
+            }
+        }
+
+    
+    private static Map<String, String> parseStringToMap(String data) {
+        Map<String, String> map = new HashMap<>();
+        String[] pairs = data.split(",");
+        for (String pair : pairs) {
+            String[] kv = pair.split(":", 2);
+            if (kv.length == 2) {
+                map.put(kv[0].trim(), kv[1].trim());
+            }
+        }
+        return map;
     }
 
 

@@ -2,8 +2,6 @@ package backend.model.bill;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.HashMap;
-import java.util.Map;
 
 import backend.storage.Storable;
 
@@ -18,14 +16,23 @@ public class Bill implements Storable {
     private boolean isActive;         // Ενεργός RF;
     private String customerVat;       // ΑΦΜ πελάτη
 
-    public Bill(String rfCode, String billId,  String issuer, BigDecimal amount, LocalDate issueDate,LocalDate dueDate,  String customerVat) {
+   
+    
+    public Bill() {
+		
+	}
+
+
+
+	public Bill(String rfCode, String billId,  String issuer, String customerVat, BigDecimal amount, LocalDate issueDate,LocalDate dueDate) {
         this.billId = billId;
         this.rfCode = rfCode;
         this.issuer = issuer;
         this.amount = amount;
         this.issueDate = issueDate;
         this.customerVat = customerVat;
-        this.dueDate = null;
+        this.dueDate = dueDate;
+        
     }
 
    
@@ -115,7 +122,7 @@ public class Bill implements Storable {
 
 
 	public boolean isActive() {
-		return isActive;
+		return isActive = !isPaid && (dueDate.isAfter(LocalDate.now()) || dueDate.isEqual(LocalDate.now()));
 	}
 
 
@@ -138,41 +145,38 @@ public class Bill implements Storable {
 
 
 
-	// Μαρκάρει ως πληρωμένο
-    public void markAsPaid() {
-        this.isPaid = true;
-        this.isActive = false;
-    }
+	
 
     // Marshal: μετατροπή σε string
     @Override
     public String marshal() {
         return String.format(
-            "type:Bill,paymentCode:%s,billNumber:%s,issuer:%s,customer:%s,amount:%s,issueDate:%s,dueDate:%s,paid:%s,active:%s",
-            rfCode, billId, issuer, customerVat, amount.toPlainString(), issueDate, dueDate, isPaid, isActive
+            "type:Bill,paymentCode:%s,billNumber:%s,issuer:%s,customer:%s,amount:%s,issueDate:%s,dueDate:%s",
+            rfCode, billId, issuer, customerVat, amount.toPlainString(), issueDate, dueDate
         );
     }
 
     // Unmarshal: από string σε αντικείμενο
     @Override
     public void unmarshal(String data) {
-        String[] keyPairs = data.split(",");
-        Map<String, String> map = new HashMap<>();
-        for (String pair : keyPairs) {
-            String[] entryPair = pair.split(":", 2);  // Εξασφάλιση split μόνο στο πρώτο ':'
-            if (entryPair.length == 2) {
-                map.put(entryPair[0].trim(), entryPair[1].trim());
-            }
-        }
+    	try {
+            String[] parts = data.split(",");
 
-        this.rfCode = map.get("paymentCode");
-        this.billId = map.get("billNumber");
-        this.issuer = map.get("issuer");
-        this.customerVat = map.get("customer");
-        this.amount = new BigDecimal(map.get("amount"));
-        this.issueDate = LocalDate.parse(map.get("issueDate"));
-        this.dueDate = LocalDate.parse(map.get("dueDate"));
-        this.isPaid = Boolean.parseBoolean(map.getOrDefault("paid", "false"));
-        this.isActive = Boolean.parseBoolean(map.getOrDefault("active", "true"));
+            this.rfCode = parts[1].split(":", 2)[1].trim();
+            this.billId = parts[2].split(":", 2)[1].trim();
+            this.issuer = parts[3].split(":", 2)[1].trim();
+            this.customerVat = parts[4].split(":", 2)[1].trim();
+            this.amount = new BigDecimal(parts[5].split(":", 2)[1].trim());
+            this.issueDate = LocalDate.parse(parts[6].split(":", 2)[1].trim());
+
+            if (parts.length > 7 && parts[7].startsWith("dueDate:")) {
+                this.dueDate = LocalDate.parse(parts[7].split(":", 2)[1].trim());
+            }
+              
+           
+        } catch (Exception e) {
+            System.err.println("Error in Bill.unmarshal: " + data);
+            e.printStackTrace();
+        }
     }
 }

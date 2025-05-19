@@ -12,7 +12,13 @@ public class BusinessAccount extends Account{
 	
      private BigDecimal maintenanceFee; // Μηνιαίο τέλος διατήρησης 
      
-     public BusinessAccount(Customer primaryOwner, BigDecimal interestRate) {
+     //default constructor
+     public BusinessAccount() {
+    	    super("BusinessAccount", "", null, LocalDate.now(), BigDecimal.ZERO, BigDecimal.ZERO);
+    	    this.maintenanceFee = BigDecimal.ZERO;
+    	}
+     
+     public BusinessAccount(String primaryOwner, BigDecimal interestRate) {
     	    super("BusinessAccount", generateIban("200"), primaryOwner, LocalDate.now(), interestRate, BigDecimal.ZERO);
     	}
      
@@ -31,7 +37,7 @@ public class BusinessAccount extends Account{
 	        StringBuilder sb = new StringBuilder();
 	        sb.append("type:BusinessAccount");
 	        sb.append(",iban:").append(iban);
-	        sb.append(",primaryOwner:").append(primaryOwner.getVatNumber());
+	        sb.append(",primaryOwner:").append(primaryOwner);
 	        sb.append(",dateCreated:").append(dateCreated);
 	        sb.append(",rate:").append(interestRate);
 	        sb.append(",balance:").append(balance);
@@ -55,7 +61,7 @@ public class BusinessAccount extends Account{
 	     BigDecimal fee = new BigDecimal(parts[6].split(":")[1]);
 
 	     this.iban = iban;
-	     this.primaryOwner = UserManager.getInstance().findUserByVat(vat); 
+	     this.primaryOwner = vat; 
 	     this.dateCreated = dateCreated;
 	     this.interestRate = rate;
 	     this.balance = balance;
