@@ -18,7 +18,7 @@ public class BusinessAccount extends Account{
     	    this.maintenanceFee = BigDecimal.ZERO;
     	}
      
-     public BusinessAccount(String primaryOwner, BigDecimal interestRate) {
+     public BusinessAccount(Customer primaryOwner, BigDecimal interestRate) {
     	    super("BusinessAccount", generateIban("200"), primaryOwner, LocalDate.now(), interestRate, BigDecimal.ZERO);
     	}
      
@@ -37,7 +37,7 @@ public class BusinessAccount extends Account{
 	        StringBuilder sb = new StringBuilder();
 	        sb.append("type:BusinessAccount");
 	        sb.append(",iban:").append(iban);
-	        sb.append(",primaryOwner:").append(primaryOwner);
+	        sb.append(",primaryOwner:").append(primaryOwner.getVatNumber());
 	        sb.append(",dateCreated:").append(dateCreated);
 	        sb.append(",rate:").append(interestRate);
 	        sb.append(",balance:").append(balance);
@@ -47,26 +47,33 @@ public class BusinessAccount extends Account{
 
 	 @Override
 	 public void unmarshal(String data) {
-	     String[] parts = data.split(",");
+		    String[] parts = data.split(","); // Διαχωρίζουμε σε key:value ζευγάρια
 
-	     if (parts.length < 6) {
-	         throw new IllegalArgumentException("Invalid data format");
-	     }
+		    String iban = "";
+		    String vat = "";
+		    BigDecimal rate = BigDecimal.ZERO;
+		    BigDecimal balance = BigDecimal.ZERO;
+		    LocalDate date = null;
 
-	     String iban = parts[1].split(":")[1];
-	     String vat = parts[2].split(":")[1];
-	     LocalDate dateCreated = LocalDate.parse(parts[3].split(":")[1]);
-	     BigDecimal rate = new BigDecimal(parts[4].split(":")[1]);
-	     BigDecimal balance = new BigDecimal(parts[5].split(":")[1]);
-	     BigDecimal fee = new BigDecimal(parts[6].split(":")[1]);
+		    for (String part : parts) {
+		        String[] keyVal = part.split(":", 2); // Πρώτο μέρος key, δεύτερο value
+		        if (keyVal.length != 2) continue;
 
-	     this.iban = iban;
-	     this.primaryOwner = vat; 
-	     this.dateCreated = dateCreated;
-	     this.interestRate = rate;
-	     this.balance = balance;
-	     this.maintenanceFee = fee;
-	 }
+		        switch (keyVal[0]) {
+		            case "iban":iban = keyVal[1]; break;
+		            case "primaryOwner":vat = keyVal[1];  break;
+		            case "dateCreated": date = LocalDate.parse(keyVal[1], DATE_FORMAT); break;
+		            case "rate": rate = new BigDecimal(keyVal[1]); break;
+		            case "balance": balance = new BigDecimal(keyVal[1]); break;
+		        }
+		    }
+
+		    this.iban = iban;
+		    this.primaryOwner =UserManager.getInstance().findUserByVat(vat);;
+		    this.dateCreated = date;
+		    this.interestRate = rate;
+		    this.balance = balance;
+		}
 	 
 	
 

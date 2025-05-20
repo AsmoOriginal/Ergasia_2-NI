@@ -34,17 +34,18 @@ public class Withdrawal extends Transaction {
             return false;
         }
 
-        // Εκτέλεση της ανάληψης
         try {
-            account.setBalance(account.getBalance().subtract(getAmount()));  // Αφαίρεση από το υπόλοιπο του λογαριασμού
-            logger.info("Withdrawal successful: " + getAmount() + " using method: " + withdrawalMethod + " on " + getFormattedDateTime());
+            logger.info("Withdrawal validated (pending balance update): " + getAmount() +
+                        " using method: " + withdrawalMethod +
+                        " from IBAN: " + account.getIban() +
+                        " on " + getFormattedDateTime());
             return true;
         } catch (Exception e) {
-            // Καταγραφή σφάλματος με περισσότερες λεπτομέρειες
             logger.severe("Withdrawal failed: " + e.getClass().getName() + " - " + e.getMessage());
             return false;
         }
     }
+
 
     // Βοηθητική μέθοδος για την επικύρωση της συναλλαγής
     private boolean isValidTransaction(Account account) {

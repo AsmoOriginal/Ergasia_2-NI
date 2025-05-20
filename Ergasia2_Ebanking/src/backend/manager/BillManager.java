@@ -20,15 +20,8 @@ import backend.model.user.Customer;
 public class BillManager {
 
     private static BillManager instance;
-    private List<Bill> paidBills;
-    private List<Bill> bills;
+    
     private Map<String, Bill> billMap;
-    
-
-    
-    
-    
-    
 
     public static BillManager getInstance() {
         if (instance == null) {
@@ -86,6 +79,11 @@ public class BillManager {
     public List<Bill> loadBillsForCustomerFromFolder(String folderPath, Customer customer) {
         List<Bill> customerBills = new ArrayList<>();
 
+        if (customer == null || customer.getVatNumber() == null) {
+            System.err.println("ERROR Customer or VAT number is null");
+            return customerBills;
+        }
+
         File folder = new File(folderPath);
         if (!folder.exists() || !folder.isDirectory()) {
             System.err.println("ERROR Folder not found or not a directory: " + folderPath);
@@ -102,10 +100,10 @@ public class BillManager {
             try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    Bill bill = new Bill(); // απαιτεί default constructor
+                    Bill bill = new Bill();
                     bill.unmarshal(line);
 
-                    if (bill.getCustomerVat().equals(customer.getVatNumber())) {
+                    if (bill.getCustomerVat().equalsIgnoreCase(customer.getVatNumber())) {
                         customerBills.add(bill);
                     }
                 }
@@ -120,6 +118,67 @@ public class BillManager {
 
         System.out.println("Issued Bills for " + customer.getVatNumber() + ": " + customerBills.size());
         return customerBills;
+    }
+
+    
+    public List<Bill> loadBillsByIssuerFromFolder(String folderPath, String issuerVat) {
+        List<Bill> issuedBills = new ArrayList<>();
+
+        File folder = new File(folderPath);
+        if (!folder.exists() || !folder.isDirectory()) {
+            System.err.println("ERROR Folder not found or not a directory: " + folderPath);
+            return issuedBills;
+        }
+
+        File[] files = folder.listFiles((dir, name) -> name.toLowerCase().endsWith(".csv"));
+        if (files == null || files.length == 0) {
+            System.err.println("ERROR No CSV files found in folder: " + folderPath);
+            return issuedBills;
+        }
+
+        for (File file : files) {
+            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    Bill bill = new Bill();
+                    bill.unmarshal(line);
+
+                    if (bill.getIssuer().equals(issuerVat)) {
+                        issuedBills.add(bill);
+                    }
+                }
+            } catch (IOException e) {
+                System.err.println("ERROR Failed to read file: " + file.getName());
+                e.printStackTrace();
+            } catch (Exception e) {
+                System.err.println("ERROR Failed to parse line in file: " + file.getName());
+                e.printStackTrace();
+            }
+        }
+
+        System.out.println("Issued Bills for issuer VAT " + issuerVat + ": " + issuedBills.size());
+        return issuedBills;
+    }
+
+    
+    
+    public void markBillAsPaid(Bill billToPay, Customer customer) {
+        // set the bill to paid
+    	billToPay.setPaid(true);
+
+        // load all the bills from the csv
+        List<Bill> allBills = loadBillsForCustomerFromFolder("data/bills", customer);
+
+        // find the right bill and pay it
+        for (Bill bill : allBills) {
+            if (bill.getRfCode().equals(billToPay.getRfCode())) {
+                bill.setPaid(true); // change the bill to paid
+                break;
+            }
+        }
+
+        // Save to the csv file
+        saveBillsByDate(allBills , "data/bills");	
     }
 
     

@@ -122,7 +122,7 @@ public class Bill implements Storable {
 
 
 	public boolean isActive() {
-		return isActive = !isPaid && (dueDate.isAfter(LocalDate.now()) || dueDate.isEqual(LocalDate.now()));
+		return !isPaid && (dueDate.isAfter(LocalDate.now()) || dueDate.isEqual(LocalDate.now()));
 	}
 
 

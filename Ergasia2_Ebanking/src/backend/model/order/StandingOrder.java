@@ -27,7 +27,7 @@ public abstract class StandingOrder implements Storable{
     private Account chargeAccount; //account that gets charged
     private Account creditAccount;
     private boolean isActive;
-    
+    private String rawData;
     
     
     public StandingOrder() {
@@ -164,6 +164,11 @@ public abstract class StandingOrder implements Storable{
 	//create a map to split the value form : type and link them so it doesn't matter the way it is written in the csv file 
 	public static Map<String, String> parseLine(String line) {
         Map<String, String> map = new HashMap<>();
+        
+        if (line.startsWith("PaymentOrder") || line.startsWith("TransferOrder")) {
+            line = line.substring(2);
+        }
+        
         String[] keyPairs = line.split(",");
         for (String pair : keyPairs) {
             String[] entryPair = pair.split(":", 2);
@@ -200,6 +205,7 @@ public abstract class StandingOrder implements Storable{
 	    this.fee = new BigDecimal(map.get("fee"));
 	    this.startDate = LocalDate.parse(map.get("startDate"));
 	    this.endDate = LocalDate.parse(map.get("endDate"));
+	    this.rawData = line; // Φυλάμε το αρχείο ως string
 	}
 
 	
@@ -208,7 +214,9 @@ public abstract class StandingOrder implements Storable{
     public abstract List<Transaction> execute(LocalDate currentDate);
 	
 	
-    
+    public String getRawData() {
+        return rawData;
+    }
     
     
 }

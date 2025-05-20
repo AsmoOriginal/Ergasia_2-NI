@@ -44,17 +44,7 @@ public class TransferOrder extends StandingOrder {
 		this.receiverNote = receiverNote;
 	}
 
-	public static TransferOrder fromLine(String line) {
-	    TransferOrder order = new TransferOrder(
-	        null, null, null, null,
-	        null, null, BigDecimal.ZERO,
-	        null, null, true,
-	        BigDecimal.ZERO, 0, 0,
-	        null, null
-	    );
-	    order.unmarshal(line);
-	    return order;
-	}
+	
 
 	
 	
@@ -102,7 +92,7 @@ public class TransferOrder extends StandingOrder {
 
 	@Override
     public String marshal() {
-        return marshal() + String.format("amount:, creditAccount:%s, frequencyInMonths:%d, dayOfMonth:%d ", amount.toPlainString(), getCreditAccount(), 
+        return super.marshal() + String.format("amount:, creditAccount:%s, frequencyInMonths:%d, dayOfMonth:%d ", amount.toPlainString(), getCreditAccount(), 
                 frequencyInMonths, dayOfMonth);
     }
 	@Override

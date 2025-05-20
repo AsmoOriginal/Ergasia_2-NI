@@ -5,13 +5,14 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-import backend.model.user.Customer;
+import backend.model.user.*;
+import backend.manager.UserManager;
 
 
 
 
 public class PersonalAccount extends Account {
-	private List<String> secondaryHolders; // Δευτερεύοντες κάτοχοι (μόνο φυσικά πρόσωπα)
+	private List<Customer> secondaryHolders; // Δευτερεύοντες κάτοχοι (μόνο φυσικά πρόσωπα)
 
 	//default constructor
 	public PersonalAccount() {
@@ -19,24 +20,24 @@ public class PersonalAccount extends Account {
 	    this.secondaryHolders = new ArrayList<>();
 	}
 
-	public PersonalAccount(String primaryOwner, BigDecimal interestRate,  List<String> secondaryHolders) {
+	public PersonalAccount(Customer primaryOwner, BigDecimal interestRate,  List<Customer> secondaryHolders) {
 		super("PersonalAccount", generateIban("100"), primaryOwner, LocalDate.now(), interestRate, BigDecimal.ZERO);
 		this.secondaryHolders = (secondaryHolders != null) ? secondaryHolders : new ArrayList<>();
 	}
 
-	public List<String> getSecondaryHolders() {
+	public List<Customer> getSecondaryHolders() {
 		return secondaryHolders;
 	}
 
-	public void setSecondaryHolders(List<String> secondaryHolders) {
+	public void setSecondaryHolders(List<Customer> secondaryHolders) {
 		this.secondaryHolders = secondaryHolders;
 	}
 
-	public boolean add(String holderId) {
+	public boolean add(Customer holderId) {
 		return secondaryHolders.add(holderId);
 	}
 
-	public boolean remove(String holderId) {
+	public boolean remove(Customer holderId) {
 		return secondaryHolders.remove(holderId);
 	}
 
@@ -45,13 +46,13 @@ public class PersonalAccount extends Account {
 	        StringBuilder sb = new StringBuilder();
 	        sb.append("type:PersonalAccount");
 	        sb.append(",iban:").append(iban);
-	        sb.append(",primaryOwner:").append(primaryOwner);
+	        sb.append(",primaryOwner:").append(primaryOwner.getVatNumber());
 	        sb.append(",dateCreated:").append(dateCreated.format(DATE_FORMAT));
 	        sb.append(",rate:").append(interestRate);
 	        sb.append(",balance:").append(balance);
 	         
-	            for (String holder : secondaryHolders) {
-	                sb.append(",coOwner:").append(holder);
+	            for (Customer holder : secondaryHolders) {
+	                sb.append(",coOwner:").append(holder.getVatNumber());
 	            }
 	        
 	        return sb.toString();
@@ -65,7 +66,7 @@ public class PersonalAccount extends Account {
 	        BigDecimal rate = BigDecimal.ZERO;
 	        BigDecimal balance = BigDecimal.ZERO;
 	        LocalDate date = null;
-	        List<String> coOwners = new ArrayList<>();
+	        List<Customer> coOwners = new ArrayList<>();
 	        
 	        for (String part : parts) {
 	            String[] keyVal = part.split(":", 2);
@@ -77,11 +78,15 @@ public class PersonalAccount extends Account {
                 case "dateCreated": date = LocalDate.parse(keyVal[1], DATE_FORMAT); break;
                 case "rate": rate = new BigDecimal(keyVal[1]); break;
                 case "balance": balance = new BigDecimal(keyVal[1]); break;
-                case "coOwner": coOwners.add(keyVal[1]); break;
+                case "coOwner":  Customer c = UserManager.getInstance().findUserByVat(keyVal[1]);
+                if (c != null) {
+                    coOwners.add(c);
+                }
+                break;
                }
 	        }
 	        this.iban = iban;
-	        this.primaryOwner = vat; 
+	        this.primaryOwner = UserManager.getInstance().findUserByVat(vat); 
 	        this.dateCreated = date;
 	        this.interestRate = rate;
 	        this.balance = balance;

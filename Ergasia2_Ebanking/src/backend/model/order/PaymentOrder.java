@@ -29,26 +29,17 @@ public class PaymentOrder extends StandingOrder {
 		
 	}
 
-	public PaymentOrder(String type, String orderId, String title, String description, Customer customer,
+	public PaymentOrder( String orderId, String title, String description, Customer customer,
 			LocalDate startDate, LocalDate endDate, BigDecimal fee, Account chargeAccount, Account creditAccount,
 			boolean isActive, String paymentCode, BigDecimal maxAmount) {
-		super(type, orderId, title, description, customer, startDate, endDate, fee, chargeAccount, creditAccount,
+		super("PaymentOrder", orderId, title, description, customer, startDate, endDate, fee, chargeAccount, creditAccount,
 				isActive);
 		this.paymentCode = paymentCode;
 		this.maxAmount = maxAmount;
 		
 	}
 	
-	public static PaymentOrder fromLine(String line) {
-	    PaymentOrder order = new PaymentOrder(
-	        null, null, null, null, null,
-	        null, null, BigDecimal.ZERO,
-	        null, null, true,
-	        null, BigDecimal.ZERO
-	    );
-	    order.unmarshal(line);
-	    return order;
-	}
+	
 
 
 
@@ -95,14 +86,14 @@ public class PaymentOrder extends StandingOrder {
 	    this.maxAmount = new BigDecimal(map.get("maxAmount"));
 	}
 
-
+	
 	@Override	
 	public boolean shouldExecute(LocalDate paymentDate) {
 		return isActive() && paymentDate.isEqual(getEndDate());
 	}
 
 	@Override
-	public List<Transaction> execute(LocalDate currentDate) {
+	public  List<Transaction> execute(LocalDate currentDate) {
 		 // Ελέγχει αν η εντολή πρέπει να εκτελεστεί
 	    if (shouldExecute(currentDate)) {
 	    	// Ανακτά τον λογαριασμό με βάση το IBAN

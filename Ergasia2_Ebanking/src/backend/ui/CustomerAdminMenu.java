@@ -1,21 +1,42 @@
 package backend.ui;
 
-import backend.model.user.Customer;
-
 import java.util.List;
 import java.util.Scanner;
 
+import backend.manager.AccountManager;
+import backend.manager.UserManager;
+import backend.model.account.Account;
+import backend.model.user.Customer;
+
 public class CustomerAdminMenu {
 	
-	private static List<Customer> customers;
+	private   List<Customer> customers;
+	private  UserManager userManager;
+	private AccountManager accountManager;
+	
+	
+	
+    
 
-    public static void setCustomers(List<Customer> loadedCustomers) {
+	public CustomerAdminMenu(List<Customer> customers, UserManager userManager) {
+		super();
+		this.customers = customers;
+		this.userManager = userManager;
+	}
+	
+
+	
+	public List<Customer> getCustomers() {
+		return customers;
+	}
+
+	public  void setCustomers(List<Customer> loadedCustomers) {
         customers = loadedCustomers;
     }
     
-    public static void show() {
+    public  void show() {
         Scanner scanner = new Scanner(System.in);
-
+        
         while (true) {
             System.out.println("\n=== Customer Admin Menu ===");
             System.out.println("1. Show Customers");
@@ -26,7 +47,7 @@ public class CustomerAdminMenu {
 
             switch (input) {
                 case "1":
-                    showAllCustomers();
+                    showCustomers();
                     break;
                 case "2":
                     showCustomerDetails(scanner);
@@ -39,38 +60,73 @@ public class CustomerAdminMenu {
         }
     }
 
-    private static void showAllCustomers() {
-        if (customers == null || customers.isEmpty()) {
-            System.out.println("No customers available.");
+    public void showCustomers() {
+        if (customers.isEmpty()) {
+            System.out.println("No customers found.");
             return;
         }
-        System.out.println("\n--- All Customers ---");
-        for (Customer c : customers) {
-            System.out.println("- " + c.getLegalName() + " (VAT: " + c.getVatNumber() + ")");
+
+        System.out.println("List of Customers:");
+        for (Customer customer : customers) {
+            String userName = "";
+            String vatNumber = "";
+
+            String[] parts = customer.marshal().split(",");
+            
+
+            
+            for (String part : parts) {
+                String[] keyValue = part.split(":", 2);
+                if (keyValue.length == 2) {
+                    String key = keyValue[0].trim().toLowerCase();
+                    String value = keyValue[1].trim();
+                    if (key.equalsIgnoreCase("userName")) {
+                        userName = value;
+                    }
+                    if (key.equalsIgnoreCase("vatNumber")) {
+                        vatNumber = value;
+                    }
+                }
+            }
+
+            System.out.printf("- Username: %-15s | VAT: %s%n", userName, vatNumber);
         }
     }
 
-    private static void showCustomerDetails(Scanner scanner) {
-        System.out.print("Enter VAT number: ");
-        String vat = scanner.nextLine();
+    public void showCustomerDetails(Scanner scanner) {
+        System.out.print("Enter customer's username or VAT: ");
+        String input = scanner.nextLine().trim();
 
-        Customer found = null;
-        for (Customer c : customers) {
-            if (c.getVatNumber().equals(vat)) {
-                found = c;
-                break;
+        Customer customer = userManager.findCustomerByUsernameOrVat(input, customers); // δίνουμε και τη λίστα
+        
+		customer.getAccounts();
+        
+        
+        System.out.println("\nCustomer Details:");
+        printKeyValueCSV(customer.marshal());
+
+        List<Account> accounts = customer.getAccounts();
+        if (accounts == null || accounts.isEmpty()) {
+            System.out.println("No accounts found for this customer.");
+        } else {
+            System.out.println("\nAccounts:");
+            for (Account acc : accounts) {
+                System.out.printf("- IBAN: %s | Balance: %.2f | Type: %s%n",
+                    acc.getIban(), acc.getBalance(), acc.getType()); // ή acc.getClass().getSimpleName()
             }
         }
+    }
 
-        if (found != null) {
-            System.out.println("\n--- Customer Details ---");
-            System.out.println("Type: " + found.getClass().getSimpleName());
-            System.out.println("Name: " + found.getLegalName());
-            System.out.println("Username: " + found.getUserName());
-            System.out.println("VAT Number: " + found.getVatNumber());
-        } else {
-            System.out.println("Customer not found.");
+
+    public void printKeyValueCSV(String csvLine) {
+        String[] fields = csvLine.split(",");
+        for (String field : fields) {
+            String[] keyValue = field.split(":", 2);
+            if (keyValue.length == 2) {
+                System.out.printf("%-15s: %s%n", keyValue[0].trim(), keyValue[1].trim());
+            }
         }
     }
 
+    
 }

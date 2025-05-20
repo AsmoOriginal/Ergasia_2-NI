@@ -2,6 +2,12 @@ package backend.model.user;
 
 public  class Admin extends User {
 
+	
+	
+	public Admin() {
+		
+	}
+
 	public Admin( String legalName, String userName, String password) {
 		super("Admin", legalName, userName, password);
 	}

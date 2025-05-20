@@ -4,28 +4,30 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 import backend.storage.Storable;
-
+import backend.model.transaction.*;
+import backend.model.user.Customer;
 
 
 public abstract class Account implements Storable {
 	private  String type;  // "BusinessAccount" , "PrivateAccount"
 	protected String iban;    // Μοναδικός 20ψήφιος κωδικός (παράγεται από το σύστημα) 
-	protected String primaryOwner; // Κύριος κάτοχος (VatNumber για αυτο ειναι Customer και οχι String) 
+	protected Customer primaryOwner; // Κύριος κάτοχος (VatNumber για αυτο ειναι Customer και οχι String) 
 	protected LocalDate dateCreated;
 	protected BigDecimal interestRate;
 	protected BigDecimal balance;           // Τρέχον υπόλοιπο     
 	protected BigDecimal accruedInterest;
 	private static  long nextId = 100000000000000L;
-	
+	private List<Transaction> transactions;
 	
 	
 	public Account() {
 	
 	}
 
-	public Account(String type, String iban, String primaryOwner, LocalDate dateCreated, BigDecimal interestRate,
+	public Account(String type, String iban, Customer primaryOwner, LocalDate dateCreated, BigDecimal interestRate,
 			BigDecimal balance) {
 		super();
 		this.type = type;
@@ -37,10 +39,10 @@ public abstract class Account implements Storable {
 		 
 	}
 	
-	public String getPrimaryOwner() {
+	public Customer getPrimaryOwner() {
 		return primaryOwner;
 	}
-	public void setPrimaryOwner(String primaryOwner) {
+	public void setPrimaryOwner(Customer primaryOwner) {
 		this.primaryOwner = primaryOwner;
 	}
 	public BigDecimal getInterestRate() {
@@ -107,6 +109,14 @@ public abstract class Account implements Storable {
         balance = balance.add(accruedInterest);           // Προσθέτει τους τόκους στο υπόλοιπο
         accruedInterest = BigDecimal.ZERO;                // Μηδενίζει τους σωρευμένους τόκους
     }
+
+	public List<Transaction> getTransactions() {
+		return transactions;
+	}
+
+	public void setTransactions(List<Transaction> transactions) {
+		this.transactions = transactions;
+	}
     
 	
 }

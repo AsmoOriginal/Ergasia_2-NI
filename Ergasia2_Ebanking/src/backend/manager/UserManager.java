@@ -3,11 +3,8 @@ package backend.manager;
 import java.io.*;
 import java.util.*;
 
-import backend.model.user.Admin;
-import backend.model.user.Company;
-import backend.model.user.Customer;
-import backend.model.user.Individual;
-import backend.model.user.User;
+import backend.model.account.Account;
+import backend.model.user.*;
 
 
 public class UserManager  {
@@ -36,25 +33,75 @@ public class UserManager  {
     
     public void loadUsersFromFile(String filePath) {
         File file = new File(filePath);
+
+        // Αν το αρχείο δεν υπάρχει, δεν κάνουμε τίποτα
         if (!file.exists()) return;
 
         try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
             String line;
+
+            // Διαβάζουμε κάθε γραμμή του αρχείου
             while ((line = reader.readLine()) != null) {
-                User user = parseLine(line);
-                if (user != null) {
+                try {
+                    // split each line from the csv file
+                    String[] parts = line.split(",");
+                    String type = null;
+
+                    for (String part : parts) {
+                        String[] keyValue = part.split(":", 2); // split the first part before :
+                        if (keyValue.length == 2 && keyValue[0].trim().equalsIgnoreCase("type")) {
+                            type = keyValue[1].trim().toLowerCase(); //get the second value that is after :
+                            break;
+                        }
+                    }
+
+                    if (type == null) {
+                        System.err.println("Missing user type in line: " + line);
+                        continue;
+                    }
+
+                    // create the correct type of object
+                    User user = null;
+
+                    switch (type) {
+                        case "individual":
+                            user = new Individual(); //uses the default constructor from the class Individual
+                            break;
+                        case "company":
+                            user = new Company();  //uses the default constructor from the class Company
+                            break;
+                        case "admin":
+                            user = new Admin();  //uses the default constructor from the class Admin
+                            break;
+                        default:
+                            System.err.println("Unknown user type: " + type);
+                            break;
+                    }
+                 
+                    if (user == null) continue;
+                    // summon the unmarshal in order to fill and create objects
+                    user.unmarshal(line);
+                    // add the user to the collection
                     users.add(user);
                     usersByUsername.put(user.getUserName().toLowerCase(), user);
+
                     if (user instanceof Customer customer) {
                         customers.add(customer);
                         usersByVat.put(customer.getVatNumber(), customer);
                     }
+
+                } catch (Exception e) {
+                    System.err.println("Error parsing user line: " + line);
+                    e.printStackTrace();
                 }
             }
+
         } catch (IOException e) {
             System.err.println("Error loading users: " + e.getMessage());
         }
     }
+
+
     
     public void saveUsersToFile(String filePath) {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
@@ -82,17 +129,14 @@ public class UserManager  {
         users.add(user);
     }
 
-    // Επιστρέφει τον χρήστη με βάση το username (ή null αν δεν βρεθεί)
-    public User getUserByUsername(String username) {
-        if (username == null) return null;
-        return usersByUsername.get(username.toLowerCase());
-    }
-    
-    public Customer findUserByVat(String vatNumber) {
-    	if (vatNumber == null) return null;
-        vatNumber = vatNumber.trim(); // αφαίρεσε τυχόν κενά
-
-        return usersByVat.get(vatNumber);
+    public Customer findCustomerByUsernameOrVat(String input, List<Customer> customers) {
+        for (Customer customer : customers) {
+            if (customer.getUserName().equalsIgnoreCase(input) ||
+                customer.getVatNumber().equalsIgnoreCase(input)) {
+                return customer;
+            }
+        }
+        return null;
     }
 
 
@@ -109,45 +153,43 @@ public class UserManager  {
                 .orElse(null);
     }
 
-
- // Δημιουργεί αντικείμενο User από γραμμή αρχείου
-    private User parseLine(String data) {
-        try {
-            String[] parts = data.split(",");
-            Map<String, String> fields = new HashMap<>();
-            for (String part : parts) {
-                String[] kv = part.split(":",2);
-                if (kv.length == 2) {
-                    fields.put(kv[0].trim().toLowerCase(), kv[1].trim());
-                }
+    public Customer findUserByVat(String vatNumber) {
+        for (Customer c : customers) {
+            if (c.getVatNumber().equals(vatNumber)) {
+                return c;
             }
-
-            String type = fields.get("type");
-            String fullName = fields.get("legalname");
-            String username = fields.get("username");
-            String password = fields.get("password");
-            String vat = fields.get("vatnumber");
-
-            if (type == null || fullName == null || username == null || password == null) {
-            	
-            	 
-                return null;
-        }
-            switch (type.toLowerCase()) {
-                case "individual":
-                    return new Individual(fullName, username, password, vat);
-                case "company":
-                    return new Company(fullName, username, password, vat);
-                case "admin":
-                    return new Admin(fullName, username, password);
-                default:
-                    System.err.println("Unknown user type: " + type);
-            }
-        } catch (Exception e) {
-            System.err.println("Error parsing line: " + data);
-            e.printStackTrace();
         }
         return null;
     }
+    
+ // Επιστρέφει τον χρήστη με βάση το username (ή null αν δεν βρεθεί)
+    public User getUserByUsername(String username) {
+        if (username == null) return null;
+        return usersByUsername.get(username.toLowerCase());
+    }
+    
+ // Μέθοδος για να ελέγξει αν ένα ΑΦΜ ανήκει σε εταιρία
+    public boolean isCompany(String vatNumber) {
+        for (Customer customer : customers) {
+            if (customer.getVatNumber().equals(vatNumber)) {
+                return (customer instanceof Company);
+            }
+        }
+        return false;
+    }
+    
+    public void bindAccountsToCustomers(List<Customer> customers, List<Account> accounts) {
+	    Map<String, List<Account>> accountsByVat = new HashMap<>();
 
+	    // Ομαδοποιείς accounts βάσει ΑΦΜ
+	    for (Account acc : accounts) {
+	        accountsByVat.computeIfAbsent(acc.getPrimaryOwner().getVatNumber(), k -> new ArrayList<>()).add(acc);
+	    }
+
+	    // Συνδέεις κάθε πελάτη με τους λογαριασμούς του
+	    for (Customer customer : customers) {
+	        List<Account> customerAccounts = accountsByVat.getOrDefault(customer.getVatNumber(), new ArrayList<>());
+	        customer.setAccounts(customerAccounts);
+	    }
+	}
 }

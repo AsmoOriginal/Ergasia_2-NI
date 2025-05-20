@@ -41,8 +41,7 @@ public class Deposit extends Transaction {
         }
 
         try {
-            account.setBalance(account.getBalance().add(getAmount()));
-            logger.info("Deposit successful: " + getAmount() +
+            logger.info("Deposit accepted (pending balance update): " + getAmount() +
                         " from: " + depositorName +
                         " to account IBAN: " + account.getIban() +
                         " on " + getFormattedDateTime());
@@ -52,6 +51,8 @@ public class Deposit extends Transaction {
             return false;
         }
     }
+    
+
 
     /**
      * Έλεγχος εγκυρότητας της συναλλαγής.

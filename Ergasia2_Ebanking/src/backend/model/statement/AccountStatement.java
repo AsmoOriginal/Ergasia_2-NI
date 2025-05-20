@@ -26,6 +26,12 @@ public class AccountStatement implements Storable {
 	private LocalDate toDate;    // Τελική ημερομηνία του διαστήματος 
 	private List<Transaction> transactions;  // Λίστα συναλλαγών για το διάστημα αυτό
 	
+	
+	
+	public AccountStatement() {
+		
+	}
+
 	public AccountStatement(Account account, LocalDate fromDate, LocalDate toDate, List<Transaction> transactions) {
 		this.account = account;
 		this.fromDate = fromDate;

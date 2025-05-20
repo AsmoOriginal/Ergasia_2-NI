@@ -7,6 +7,13 @@ public abstract class Customer extends User {
 	
 	private String vatNumber;    // ΑΦΜ - μοναδικός αναγνωριστικός αριθμός πελάτη 
 	private List<Account> accounts = new ArrayList<>() ;
+	
+	
+	
+	public Customer() {
+		
+	}
+
 	public Customer(String type,String legalName, String userName, String password,  String vatNumber) {
 		super(type, legalName, userName, password);
 		this.vatNumber = vatNumber;	
@@ -51,20 +58,8 @@ public abstract class Customer extends User {
 			    }
 		}
 
-		public void bindAccountsToCustomers(List<Customer> customers, List<Account> accounts) {
-		    Map<String, List<Account>> accountsByVat = new HashMap<>();
+		
 
-		    // Ομαδοποιείς accounts βάσει ΑΦΜ
-		    for (Account acc : accounts) {
-		        accountsByVat.computeIfAbsent(acc.getPrimaryOwner(), k -> new ArrayList<>()).add(acc);
-		    }
-
-		    // Συνδέεις κάθε πελάτη με τους λογαριασμούς του
-		    for (Customer customer : customers) {
-		        List<Account> customerAccounts = accountsByVat.getOrDefault(customer.getVatNumber(), new ArrayList<>());
-		        customer.setAccounts(customerAccounts);
-		    }
-		}
-
+		
 	
 }

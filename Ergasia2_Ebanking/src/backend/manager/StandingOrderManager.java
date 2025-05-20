@@ -1,8 +1,5 @@
 package backend.manager;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,15 +19,18 @@ public class StandingOrderManager {
 	
 	private static StandingOrderManager instance;
   
-    private final TransactionManager transactionManager;
     private final AccountManager accountManager;
-    
+    private StorageManager storageManager;
+    private Transaction transaction;
 
-    //Singleton
+    
+   
+
+	//Singleton
     private StandingOrderManager() {
        
         
-        this.transactionManager = TransactionManager.getInstance();
+        TransactionManager.getInstance();
         this.accountManager = AccountManager.getInstance();
         
         ordersByStatus.put("active", new OrderGroup());
@@ -59,27 +59,54 @@ public class StandingOrderManager {
      
      //φτιάχνουμε το map που θα αντιστοιχίσει strings με τα αντικείμενα της inner class και είναι final για να μη δώσω άλλη αναφορά
      public final Map<String, OrderGroup> ordersByStatus = new HashMap<>();
-	private Transaction transaction;
+	
   
 	
 	public void loadOrders(String filePath, StorageManager storageManager) {
-	    List<StandingOrder> loadedOrders = storageManager.load(StandingOrder.class, filePath);
+	    // Χρησιμοποιούμε dummy αντικείμενο απλά για να διαβάσουμε το αρχείο
+	    PaymentOrder dummy = new PaymentOrder();  // ή TransferOrder, δεν έχει σημασία
+	    storageManager.load(dummy, filePath);
 
-	    OrderGroup active = ordersByStatus.get("active");
-	    OrderGroup expired = ordersByStatus.get("expired");
-	    OrderGroup failed = ordersByStatus.get("failed");
+	    String rawData = dummy.getRawData(); // <-- παίρνουμε όλο το αρχείο
 
-	    // Καθαρίζεις πρώτα τις λίστες (αν θες)
-	    active.payments.clear();
-	    active.transfers.clear();
-	    expired.payments.clear();
-	    expired.transfers.clear();
-	    failed.payments.clear();
-	    failed.transfers.clear();
+	    List<StandingOrder> loadedOrders = new ArrayList<>();
 
+	    if (rawData != null && !rawData.isEmpty()) {
+	        String[] lines = rawData.split("\n");
+
+	        for (String line : lines) {
+	            StandingOrder order;
+
+	            if (line.startsWith("PaymentOrder")) {
+	                order = new PaymentOrder();
+	            } else if (line.startsWith("TransferOrder")) {
+	                order = new TransferOrder();
+	            } else {
+	                continue; // skip ή throw
+	            }
+
+	            order.unmarshal(line);
+	            loadedOrders.add(order);
+	        }
+	    }
+
+	    // Καθαρίζεις τις λίστες
+	    ordersByStatus.get("active").payments.clear();
+	    ordersByStatus.get("active").transfers.clear();
+	    ordersByStatus.get("expired").payments.clear();
+	    ordersByStatus.get("expired").transfers.clear();
+	    ordersByStatus.get("failed").payments.clear();
+	    ordersByStatus.get("failed").transfers.clear();
+
+	    // Προσθήκη στη σωστή λίστα
 	    for (StandingOrder order : loadedOrders) {
-	        // Ανάλογα με το status του order, βάλε το στη σωστή λίστα
-	        String status = order.isActive(); // πχ "active", "expired", "failed"
+	    	String status;
+	    	if (order.isActive()) {
+	    	    status = "active";
+	    	}
+	    	 else {
+	    	    status = "failed";
+	    	}
 	        OrderGroup group = ordersByStatus.get(status);
 
 	        if (order instanceof PaymentOrder) {
@@ -92,38 +119,35 @@ public class StandingOrderManager {
 
 	
 	public void saveOrders(String filePath) {
-	    List<Storable> allOrders = new ArrayList<>();
+        StringBuilder sb = new StringBuilder();
 
-	    OrderGroup active = ordersByStatus.get("active");
-	    if (active != null) {
-	        allOrders.addAll(active.payments);
-	        allOrders.addAll(active.transfers);
-	    }
+        // Περνάς όλα τα orders (payments & transfers) από όλα τα groups
+        for (OrderGroup group : ordersByStatus.values()) {
+            for (PaymentOrder po : group.payments) {
+                sb.append(po.marshal()).append("\n");
+            }
+            for (TransferOrder to : group.transfers) {
+                sb.append(to.marshal()).append("\n");
+            }
+        }
 
-	    OrderGroup expired = ordersByStatus.get("expired");
-	    if (expired != null) {
-	        allOrders.addAll(expired.payments);
-	        allOrders.addAll(expired.transfers);
-	    }
+        // Φτιάχνουμε το προσωρινό Storable wrapper
+        Storable wrapper = new Storable() {
+            private final String data = sb.toString();
 
-	    OrderGroup failed = ordersByStatus.get("failed");
-	    if (failed != null) {
-	        allOrders.addAll(failed.payments);
-	        allOrders.addAll(failed.transfers);
-	    }
+            @Override
+            public String marshal() {
+                return data;
+            }
 
-	    try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath, false))) {
-	        for (Storable order : allOrders) {
-	            writer.write(order.marshal());
-	            writer.newLine();
-	        }
-	    } catch (IOException e) {
-	        System.err.println("[ERROR] Failed to save orders to file: " + filePath);
-	        e.printStackTrace();
-	    }
-	}
+            @Override
+            public void unmarshal(String data) {
+                // Δεν το χρειάζεσαι εδώ
+            }
+        };
 
-
+        storageManager.save(wrapper, filePath, false); // overwrite το αρχείο
+    }
 
      
     //Kάνε execute τα orders για μια συγκεκριμένη ημερομηνία "date"
@@ -220,42 +244,16 @@ public class StandingOrderManager {
  	        expired.payments.add((PaymentOrder) order);
  	    }
      }
+
+	public AccountManager getAccountManager() {
+		return accountManager;
+	}
      
-     public void simulateTimePassing(LocalDate endDate) {
-    	    LocalDate currentDate = LocalDate.now();
-    	    
-    	    while (!currentDate.isAfter(endDate)) {
-    	        System.out.println("Simulating date: " + currentDate);
-    	        
-    	        //Execute standing orders for current date
-    	        executeOrdersForDate(currentDate);
-    	        
-    	        // Check if it's the last day of month for interest and fees
-    	        if (isLastDayOfMonth(currentDate)) {
-    	            
-    	            accountManager.processDailyInterest(currentDate);
-    	        }
-    	        
-    	        currentDate = currentDate.plusDays(1);
-    	    }
-    	    
-    	   saveOrders("order/active.csv");
-    	}
-
-    	private boolean isLastDayOfMonth(LocalDate date) {
-    	    return date.getDayOfMonth() == date.lengthOfMonth();
-    	}
-
-		public Transaction getTransaction() {
+	 public Transaction getTransaction() {
 			return transaction;
 		}
 
 		public void setTransaction(Transaction transaction) {
 			this.transaction = transaction;
 		}
-
-		public TransactionManager getTransactionManager() {
-			return transactionManager;
-		}
-
 }
