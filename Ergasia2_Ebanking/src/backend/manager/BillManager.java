@@ -103,7 +103,7 @@ public class BillManager {
                     Bill bill = new Bill();
                     bill.unmarshal(line);
 
-                    if (bill.getCustomerVat().equalsIgnoreCase(customer.getVatNumber())) {
+                    if (bill.getCustomerVat() != null && bill.getCustomerVat().getPrimaryOwner().getVatNumber().equalsIgnoreCase(customer.getVatNumber())) {
                         customerBills.add(bill);
                     }
                 }

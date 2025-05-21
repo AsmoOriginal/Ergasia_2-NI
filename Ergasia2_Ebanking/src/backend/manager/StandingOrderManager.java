@@ -1,7 +1,12 @@
 package backend.manager;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -62,60 +67,64 @@ public class StandingOrderManager {
 	
   
 	
-	public void loadOrders(String filePath, StorageManager storageManager) {
-	    // Χρησιμοποιούμε dummy αντικείμενο απλά για να διαβάσουμε το αρχείο
-	    PaymentOrder dummy = new PaymentOrder();  // ή TransferOrder, δεν έχει σημασία
-	    storageManager.load(dummy, filePath);
+     public List<StandingOrder> loadStandingOrdersFromFolder(String folderPath) {
+    	    List<StandingOrder> standingOrders = new ArrayList<>();
 
-	    String rawData = dummy.getRawData(); // <-- παίρνουμε όλο το αρχείο
+    	    File folder = new File(folderPath);
+    	    
+    	    System.out.println("Reading folder: " + folderPath);
+    	    System.out.println("Found files: " + Arrays.toString(folder.list()));
+    	    if (!folder.exists() || !folder.isDirectory()) {
+    	        System.err.println("ERROR Folder not found or not a directory: " + folderPath);
+    	        return standingOrders;
+    	    }
 
-	    List<StandingOrder> loadedOrders = new ArrayList<>();
+    	    File[] files = folder.listFiles((dir, name) -> name.toLowerCase().endsWith(".csv"));
+    	    if (files == null || files.length == 0) {
+    	        System.err.println("ERROR No CSV files found in folder: " + folderPath);
+    	        return standingOrders;
+    	    }
 
-	    if (rawData != null && !rawData.isEmpty()) {
-	        String[] lines = rawData.split("\n");
+    	    for (File file : files) {
+    	        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+    	            String line;
+    	            while ((line = reader.readLine()) != null) {
+    	            	StandingOrder order;
+    	            	if (line.contains("type:PaymentOrder")) {
+    	            	    order = new PaymentOrder();
+    	            	} else if (line.contains("type:TransferOrder")) {
+    	            	    order = new TransferOrder();
+    	            	} else  {
+    	                    continue; // άκυρη γραμμή, παράλειψέ την
+    	                }
+    	                order.unmarshal(line);
+    	                standingOrders.add(order);
+    	                
+    	                String status = order.isActive() ? "active" : "failed"; // ή expired αν έχεις
+    	                OrderGroup group = ordersByStatus.get(status);
+    	                
+    	                if (order instanceof PaymentOrder) {
+    	                    group.payments.add((PaymentOrder) order);
+    	                } else if (order instanceof TransferOrder) {
+    	                    group.transfers.add((TransferOrder) order);
+    	                }
+    	            }
+    	            
+    	            
+    	        } catch (IOException e) {
+    	            System.err.println("ERROR Failed to read file: " + file.getName());
+    	            e.printStackTrace();
+    	        } catch (Exception e) {
+    	            System.err.println("ERROR Failed to parse line in file: " + file.getName());
+    	            e.printStackTrace();
+    	        }
+    	    }
 
-	        for (String line : lines) {
-	            StandingOrder order;
+    	    System.out.println("Loaded Standing Orders: " + standingOrders.size());
+    	    
+    	    return standingOrders;
+    	}
 
-	            if (line.startsWith("PaymentOrder")) {
-	                order = new PaymentOrder();
-	            } else if (line.startsWith("TransferOrder")) {
-	                order = new TransferOrder();
-	            } else {
-	                continue; // skip ή throw
-	            }
-
-	            order.unmarshal(line);
-	            loadedOrders.add(order);
-	        }
-	    }
-
-	    // Καθαρίζεις τις λίστες
-	    ordersByStatus.get("active").payments.clear();
-	    ordersByStatus.get("active").transfers.clear();
-	    ordersByStatus.get("expired").payments.clear();
-	    ordersByStatus.get("expired").transfers.clear();
-	    ordersByStatus.get("failed").payments.clear();
-	    ordersByStatus.get("failed").transfers.clear();
-
-	    // Προσθήκη στη σωστή λίστα
-	    for (StandingOrder order : loadedOrders) {
-	    	String status;
-	    	if (order.isActive()) {
-	    	    status = "active";
-	    	}
-	    	 else {
-	    	    status = "failed";
-	    	}
-	        OrderGroup group = ordersByStatus.get(status);
-
-	        if (order instanceof PaymentOrder) {
-	            group.payments.add((PaymentOrder) order);
-	        } else if (order instanceof TransferOrder) {
-	            group.transfers.add((TransferOrder) order);
-	        }
-	    }
-	}
 
 	
 	public void saveOrders(String filePath) {
@@ -256,4 +265,26 @@ public class StandingOrderManager {
 		public void setTransaction(Transaction transaction) {
 			this.transaction = transaction;
 		}
+		
+		public List<StandingOrder> listStandingOrdersForCustomer(String vatNumber) {
+		    List<StandingOrder> result = new ArrayList<>();
+
+		    for (String status : ordersByStatus.keySet()) {
+		        OrderGroup group = ordersByStatus.get(status);
+		        
+		        for (PaymentOrder paymentOrder : group.payments) {
+		        	if (paymentOrder.getCustomer() != null && paymentOrder.getCustomer().getVatNumber().equals(vatNumber)) {
+		        	    result.add(paymentOrder);
+		        	
+		            }
+		        }
+
+		        for (TransferOrder transferOrder : group.transfers) {
+		            if (transferOrder.getCustomer() !=null && transferOrder.getCustomer().getVatNumber().equals(vatNumber)) {
+		                result.add(transferOrder);
+		            }
+		        }
+		    }
+		    return result;
+         }
 }

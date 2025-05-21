@@ -60,30 +60,42 @@ public class StatementManager {
 	        }
 	    }
 
-	    public List<AccountStatement> loadAllAccountStatements(String filePath) {
+	    public List<AccountStatement> loadAllAccountStatementsFromFolder(String folderPath) {
 	        List<AccountStatement> statements = new ArrayList<>();
-	        File file = new File(filePath);
 
-	        if (!file.exists()) {
-	            System.err.println("File not found: " + filePath);
+	        File folder = new File(folderPath);
+	        if (!folder.exists() || !folder.isDirectory()) {
+	            System.err.println("ERROR Folder not found or not a directory: " + folderPath);
 	            return statements;
 	        }
 
-	        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-	            String line;
-	            while ((line = reader.readLine()) != null) {
-	                AccountStatement statement = new AccountStatement();  // Default constructor
-	                statement.unmarshal(line);
-	                statements.add(statement);
-	            }
-	        } catch (IOException e) {
-	            System.err.println("Error loading AccountStatements: " + e.getMessage());
-	            e.printStackTrace();
+	        File[] files = folder.listFiles((dir, name) -> name.toLowerCase().endsWith(".csv"));
+	        if (files == null || files.length == 0) {
+	            System.err.println("ERROR No CSV files found in folder: " + folderPath);
+	            return statements;
 	        }
 
+	        for (File file : files) {
+	            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+	                String line;
+	                while ((line = reader.readLine()) != null) {
+	                    AccountStatement statement = new AccountStatement();
+	                    statement.unmarshal(line);
+	                    statements.add(statement);
+	                }
+	            } catch (IOException e) {
+	                System.err.println("ERROR Failed to read file: " + file.getName());
+	                e.printStackTrace();
+	            } catch (Exception e) {
+	                System.err.println("ERROR Failed to parse line in file: " + file.getName());
+	                e.printStackTrace();
+	            }
+	        }
+
+	        System.out.println("Loaded Account Statements: " + statements.size());
 	        return statements;
 	    }
-	    
+
 	    public List<AccountStatement> findStatementsByIban(String iban) {
 	        List<AccountStatement> result = new ArrayList<>();
 

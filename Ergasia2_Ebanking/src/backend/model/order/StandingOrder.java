@@ -141,22 +141,20 @@ public abstract class StandingOrder implements Storable{
 	}
 
 	@Override
-	public  String marshal() {
+	public String marshal() {
 	    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-	    return String.format(
-	        "type=%s,orderId=%s,title=%s,description=%s,customer=%s,startDate=%s,endDate=%s,fee=%s,chargeAccount=%s",
-	        type,
-	        orderId,
-	        title,
-	        description,
-	        customer, 
-	        startDate != null ? startDate.format(formatter) : "null",
-	        endDate != null ? endDate.format(formatter) : "null",
-	        fee != null ? fee.toPlainString() : "0.00",
-	        chargeAccount 
-	    );
+	    return "type=" + type
+	        + ",orderId=" + orderId
+	        + ",title=" + title
+	        + ",description=" + description
+	        + ",customerVat=" + (customer != null ? customer.getVatNumber() : "null")
+	        + ",startDate=" + (startDate != null ? startDate.format(formatter) : "null")
+	        + ",endDate=" + (endDate != null ? endDate.format(formatter) : "null")
+	        + ",fee=" + (fee != null ? fee.toPlainString() : "0.00")
+	        + ",chargeAccount=" + (chargeAccount != null ? chargeAccount.getIban() : "null");
 	}
+
 
 
 
@@ -218,5 +216,13 @@ public abstract class StandingOrder implements Storable{
         return rawData;
     }
     
+    public String getCustomerVat() {
+        if (customer != null) {
+            return customer.getVatNumber();
+        } else {
+            return null;
+        }
+    }
+
     
 }

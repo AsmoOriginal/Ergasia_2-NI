@@ -3,19 +3,24 @@ package backend.model.bill;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+import backend.manager.AccountManager;
+import backend.manager.UserManager;
+import backend.model.account.Account;
+import backend.model.account.PersonalAccount;
+import backend.model.user.Customer;
 import backend.storage.Storable;
 
 public class Bill implements Storable {
     private String billId;            // Μοναδικός αριθμός λογαριασμού
     private String rfCode;            // Κωδικός πληρωμής RF
-    private String issuer;            // Εκδότης (εταιρεία)
+    private Account issuer;            // Εκδότης (εταιρεία)
     private BigDecimal amount;        // Ποσό
     private LocalDate issueDate;      // Ημερομηνία έκδοσης
     private LocalDate dueDate;        // Λήξη
     private boolean isPaid;           // Έχει πληρωθεί;
     private boolean isActive;         // Ενεργός RF;
-    private String customerVat;       // ΑΦΜ πελάτη
-
+    private Account customerVat;       // ΑΦΜ πελάτη
+    
    
     
     public Bill() {
@@ -24,7 +29,7 @@ public class Bill implements Storable {
 
 
 
-	public Bill(String rfCode, String billId,  String issuer, String customerVat, BigDecimal amount, LocalDate issueDate,LocalDate dueDate) {
+	public Bill(String rfCode, String billId,  Account issuer, Account customerVat, BigDecimal amount, LocalDate issueDate,LocalDate dueDate) {
         this.billId = billId;
         this.rfCode = rfCode;
         this.issuer = issuer;
@@ -61,13 +66,13 @@ public class Bill implements Storable {
 
 
 
-	public String getIssuer() {
+	public Account getIssuer() {
 		return issuer;
 	}
 
 
 
-	public void setIssuer(String issuer) {
+	public void setIssuer(Account issuer) {
 		this.issuer = issuer;
 	}
 
@@ -133,13 +138,13 @@ public class Bill implements Storable {
 
 
 
-	public String getCustomerVat() {
+	public Account getCustomerVat() {
 		return customerVat;
 	}
 
 
 
-	public void setCustomerVat(String customerVat) {
+	public void setCustomerVat(Account customerVat) {
 		this.customerVat = customerVat;
 	}
 
@@ -148,13 +153,18 @@ public class Bill implements Storable {
 	
 
     // Marshal: μετατροπή σε string
-    @Override
-    public String marshal() {
-        return String.format(
-            "type:Bill,paymentCode:%s,billNumber:%s,issuer:%s,customer:%s,amount:%s,issueDate:%s,dueDate:%s",
-            rfCode, billId, issuer, customerVat, amount.toPlainString(), issueDate, dueDate
-        );
-    }
+	@Override
+	public String marshal() {
+	    return "type:Bill," +
+	           "paymentCode:" + rfCode + "," +
+	           "billNumber:" + billId + "," +
+	           "issuer:" + (issuer != null && issuer.getPrimaryOwner() != null ? issuer.getPrimaryOwner().getVatNumber() : "null") + "," +
+	           "customer:" + (customerVat != null && customerVat.getPrimaryOwner() != null ? customerVat.getPrimaryOwner().getVatNumber() : "null") + "," +
+	           "amount:" + amount.toPlainString() + "," +
+	           "issueDate:" + issueDate + "," +
+	           "dueDate:" + dueDate;
+	}
+
 
     // Unmarshal: από string σε αντικείμενο
     @Override
@@ -164,8 +174,36 @@ public class Bill implements Storable {
 
             this.rfCode = parts[1].split(":", 2)[1].trim();
             this.billId = parts[2].split(":", 2)[1].trim();
-            this.issuer = parts[3].split(":", 2)[1].trim();
-            this.customerVat = parts[4].split(":", 2)[1].trim();
+            String issuerId = parts[3].split(":", 2)[1].trim();
+            Account issuerAccount = AccountManager.getInstance().getAccountsByVatNumber(issuerId);
+
+            if (issuerAccount == null) {
+                System.err.println("WARNING: No issuer account found for VAT " + issuerId + ", creating temporary account.");
+                Customer issuerCustomer = UserManager.getInstance().findUserByVat(issuerId);
+                if (issuerCustomer != null) {
+                    issuerAccount = new PersonalAccount(); // ή CompanyAccount, αν έχεις ένδειξη
+                    issuerAccount.setPrimaryOwner(issuerCustomer);
+                } else {
+                    System.err.println("ERROR: No customer found for VAT " + issuerId + ". Cannot set issuer.");
+                }
+            }
+            
+            
+            String custId = parts[4].split(":", 2)[1].trim();
+            Account custAccount = AccountManager.getInstance().getAccountsByVatNumber(custId);
+
+            if (custAccount == null) {
+                System.err.println("WARNING: No account found for VAT " + custId + ", creating temporary account.");
+                Customer customer = UserManager.getInstance().findUserByVat(custId);
+                if (customer != null) {
+                	custAccount  = new PersonalAccount();
+                	custAccount.setPrimaryOwner(customer);
+                } else {
+                    System.err.println("ERROR: No customer found for VAT " + custId + ". Cannot set customerVat.");
+                }
+            }
+            this.issuer = issuerAccount; 
+            this.customerVat = custAccount;
             this.amount = new BigDecimal(parts[5].split(":", 2)[1].trim());
             this.issueDate = LocalDate.parse(parts[6].split(":", 2)[1].trim());
 

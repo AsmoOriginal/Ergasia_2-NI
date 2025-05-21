@@ -7,7 +7,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import backend.model.account.Account;
 import backend.model.account.BusinessAccount;
@@ -18,7 +20,9 @@ public class AccountManager {
 	
 	private static AccountManager instance;  // Singleton instance
     private final List<Account> accounts;  // Λίστα με όλους τους λογαριασμούς
-
+    private Map<String, Account> accountsByVat = new HashMap<>();
+    
+    
     // Ιδιωτικός constructor για singleton
     private AccountManager() {
         this.accounts = new ArrayList<>();
@@ -63,6 +67,9 @@ public class AccountManager {
             if (account != null) {
                 account.unmarshal(line);
                 accounts.add(account);
+                String vat = account.getPrimaryOwner().getVatNumber();
+                accountsByVat.put(vat, account);
+
             }
            }
         } catch (IOException e) {
@@ -71,18 +78,18 @@ public class AccountManager {
 
     }
     
- // Μέθοδος για την αποθήκευση λογαριασμών στο αρχείο 
     public void saveAccountsToFile(String filePath) {
-    	try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
             for(Account account : accounts) {
-            	writer.write(account.marshal());
+                writer.write(account.marshal());
                 writer.newLine();
             }
-    		
+           
         } catch (IOException e) {
             System.err.println("Error saving accounts:  "  + e.getMessage());
         }
     }
+
     
  // Μέθοδος για να προσθέσουμε ένα νέο λογαριασμό
     public void addAccount(Account account) {
@@ -159,15 +166,9 @@ public class AccountManager {
     }
     
     //get the accounts by vatNumber and use lists for the users with the same vatNumber that have more than one accounts
-    public Account getAccountsByVatNumber(String vatNumber) {
+    public Account getAccountsByVatNumber(String vat) {
         
-        for (Account account : accounts) {
-            if (account.getPrimaryOwner().equals(vatNumber)) {
-                return account;
-            }
-        }
-        return null;
-    } 
+    	 return accountsByVat.get(vat);
 	
-   
+    }
 }

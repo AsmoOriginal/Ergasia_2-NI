@@ -91,10 +91,14 @@ public class TransferOrder extends StandingOrder {
 	}
 
 	@Override
-    public String marshal() {
-        return super.marshal() + String.format("amount:, creditAccount:%s, frequencyInMonths:%d, dayOfMonth:%d ", amount.toPlainString(), getCreditAccount(), 
-                frequencyInMonths, dayOfMonth);
-    }
+	public String marshal() {
+	    return super.marshal()
+	        + " amount:" + amount.toPlainString()
+	        + " creditAccount:" + getCreditAccount().getIban()
+	        + " frequencyInMonths:" + frequencyInMonths
+	        + " dayOfMonth:" + dayOfMonth;
+	}
+
 	@Override
 	public void unmarshal(String line) {
 	    // Κλήση της unmarshal της StandingOrder

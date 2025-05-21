@@ -71,9 +71,11 @@ public class PaymentOrder extends StandingOrder {
 	}
 
 	@Override
-    public String marshal() {
-        return marshal() + String.format("paymentCode:%s, maxAmount:",paymentCode, maxAmount.toPlainString());
-    }
+		public String marshal() {
+		    return super.marshal()
+		        + " paymentCode:" + paymentCode
+		        + " maxAmount:" + maxAmount.toPlainString();
+		}
 	@Override
 	public void unmarshal(String line) {
 	    // Κλήση της unmarshal της StandingOrder

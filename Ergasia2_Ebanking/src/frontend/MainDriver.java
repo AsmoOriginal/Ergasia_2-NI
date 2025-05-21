@@ -1,15 +1,15 @@
 package frontend;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 
-import backend.manager.*;
+import backend.manager.AccountManager;
+import backend.manager.BillManager;
+import backend.manager.StandingOrderManager;
+import backend.manager.StatementManager;
+import backend.manager.TransactionManager;
+import backend.manager.UserManager;
 import backend.model.account.Account;
-import backend.model.bill.Bill;
 import backend.model.statement.AccountStatement;
 import backend.model.user.Admin;
 import backend.model.user.Customer;
@@ -36,15 +36,18 @@ public class MainDriver {
         TransactionManager transactionManager = TransactionManager.getInstance();
         StandingOrderManager standingOrderManager = StandingOrderManager.getInstance();
         
+        
         userManager.loadUsersFromFile("data/users/users.csv");
-        statementManager.loadAllAccountStatements("data/statments/statment.csv");
+       statementManager.loadAllAccountStatementsFromFolder("data/statements");
         accountManager.loadAccountsFromFile("data/accounts/accounts.csv");
+		standingOrderManager.loadStandingOrdersFromFolder("data/orders");
         
-        
+		
        List<Account> accounts = accountManager.getAccounts();
         List<Customer> customers = userManager.getCustomers();
         List<AccountStatement> statement = statementManager.getStatements();
-       
+      
+        
         userManager.bindAccountsToCustomers(customers, accounts);  
        // Ταυτοποίηση
        User currentUser = null;
