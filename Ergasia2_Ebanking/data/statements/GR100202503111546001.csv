@@ -1,0 +1,2 @@
+type:Personal,iban:GR100202503111546001,from:2025-05-22,to:2025-05-22,transactions:{type:Payment,id:1c978c43-782b-41af-820e-d2e9194d0b4c,fromIban:GR100202503111546001,toIban:GR200202503131719402,amount:29.46,dateTime:2025-05-22T18:46:14.492172400,transactor:null,rfCode:RF10203040}
+type:Personal,iban:GR100202503111546001,from:2025-05-22,to:2025-05-22,transactions:{type:Payment,id:794da28f-b74f-4787-b84c-346924c5ca55,fromIban:GR100202503111546001,toIban:GR200202503131719402,amount:29.46,dateTime:2025-05-22T18:45:36.417082100,transactor:null,rfCode:RF10203040}

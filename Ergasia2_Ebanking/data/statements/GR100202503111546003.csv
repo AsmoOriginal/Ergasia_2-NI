@@ -1,0 +1,2 @@
+type:Personal,iban:GR100202503111546003,from:2025-05-22,to:2025-05-22,transactions:{id:4db9360e-c86c-4c49-a69b-0d951a665e5d,type:null,fromIban:GR100202503111546003,toIban:GR100202503111546003,amount:500,dateTime:2025-05-22T18:44:02.966122500,transactor:null,depositorName:mmaragkoudaki}
+type:Personal,iban:GR100202503111546003,from:2025-05-22,to:2025-05-22,transactions:{id:eacf50c5-01ac-4083-b807-d5ecfe5f9b53,type:null,fromIban:GR100202503111546003,toIban:null,amount:200,dateTime:2025-05-22T18:43:06.765031200,transactor:null,withdrawalMethod:ONLINE}
