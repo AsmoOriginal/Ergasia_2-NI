@@ -213,14 +213,19 @@ public class Bill implements Storable {
 	        }
 
 	        // Νέος κώδικας: αναζήτηση και ανάθεση paid
-	        this.isPaid = false;  // default
+	        boolean foundPaid = false;
 	        for (String part : parts) {
 	            if (part.startsWith("paid:")) {
 	                this.isPaid = Boolean.parseBoolean(part.split(":", 2)[1].trim());
+	                foundPaid = true;
 	                break;
 	            }
 	        }
+	        if (!foundPaid) {
+	            this.isPaid = false; // default fallback
+	        }
 
+	       
 	    } catch (Exception e) {
 	        System.err.println("Error in Bill.unmarshal: " + data);
 	        e.printStackTrace();

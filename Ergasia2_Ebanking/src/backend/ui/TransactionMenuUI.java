@@ -1,21 +1,21 @@
 package backend.ui;
 
-import java.util.Scanner;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 
 import backend.manager.AccountManager;
+import backend.manager.BillManager;
+import backend.manager.StatementManager;
+import backend.manager.TransactionManager;
+import backend.model.account.Account;
+import backend.model.bill.Bill;
 import backend.model.transaction.Deposit;
 import backend.model.transaction.Payment;
-import backend.model.transaction.Transaction;
 import backend.model.transaction.Transfer;
 import backend.model.transaction.Withdrawal;
 import backend.model.user.Customer;
-import backend.model.account.Account;
-import backend.model.bill.Bill;
-import backend.manager.TransactionManager;
-import backend.manager.BillManager;
 
 public class TransactionMenuUI {
 	
@@ -80,8 +80,14 @@ public class TransactionMenuUI {
     	if (success) {
     	    System.out.println("Deposit successful!");
     	    System.out.printf("New balance: %.2f€%n", toAccount.getBalance());
-    	} else {
-    	    System.out.println("Deposit failed.");
+
+    	    // Προσθήκη transaction στο statement και αποθήκευση
+    	    StatementManager sm = StatementManager.getInstance();
+    	    sm.addTransactionToStatement(deposit);
+    	    sm.saveStatements(
+    	        sm.getStatementsForAccount(toAccount.getIban()),
+    	        "data/statements/" + toAccount.getIban() + ".csv"
+    	    );
     	}
     }
     
@@ -103,8 +109,13 @@ public class TransactionMenuUI {
     	if (success) {
     	    System.out.println("Withdrawal successful!");
     	    System.out.printf("New balance: %.2f€%n", fromAccount.getBalance());
-    	} else {
-    	    System.out.println("Withdrawal failed.");
+
+    	    StatementManager sm = StatementManager.getInstance();
+    	    sm.addTransactionToStatement(withdrawal);
+    	    sm.saveStatements(
+    	        sm.getStatementsForAccount(fromAccount.getIban()),
+    	        "data/statements/" + fromAccount.getIban() + ".csv"
+    	    );
     	}
     }
     
@@ -142,10 +153,14 @@ public class TransactionMenuUI {
     	if (success) {
     	    System.out.println("Transfer successful!");
     	    System.out.printf("New balance: %.2f€%n", fromAccount.getBalance());
-    	} else {
-    	    System.out.println("Transfer failed.");
+
+    	    StatementManager sm = StatementManager.getInstance();
+    	    sm.addTransactionToStatement(transfer);
+    	    sm.saveStatements(
+    	        sm.getStatementsForAccount(fromAccount.getIban()),
+    	        "data/statements/" + fromAccount.getIban() + ".csv"
+    	    );
     	}
-    	
     }
     
     //handle the  Pay Bill
@@ -153,7 +168,7 @@ public class TransactionMenuUI {
 
     	
     	//load all the customer's bills
-    	List<Bill> allBills = billManager.loadBillsForCustomerFromFolder("data/bills", customer); // customer from previous menu
+    	List<Bill> allBills = billManager.loadBillsByCustomerVat("data/bills", customer); // customer from previous menu
     	//load all the unpaidBills
     	List<Bill> unpaidBills = new ArrayList<Bill>();
     	
@@ -173,9 +188,12 @@ public class TransactionMenuUI {
         System.out.println("\n=== Unpaid Bills ===");
         int index = 1;
         for(Bill bill: unpaidBills) {
+        	Account issuer = bill.getIssuer();
+        	String displayInfo = issuer.getIban();
+        	
         	System.out.printf("%d. %s | Amount: %.2f€ | Due: %s | RF: %s%n",
         			index++,
-                    bill.getIssuer(),
+        			displayInfo,
                     bill.getAmount(),
                     bill.getDueDate(),
                     bill.getRfCode());
@@ -188,11 +206,12 @@ public class TransactionMenuUI {
             
             if (choice > 0 && choice <= unpaidBills.size()) {
                 Bill selectedBill = unpaidBills.get(choice - 1);
-            
+                Account issuer = selectedBill.getIssuer();
+            	String displayInfo = issuer.getIban();
             //confirm the payment of bill
             System.out.printf("Confirm payment of %.2f€ to %s? (yes/no): ",
                     selectedBill.getAmount(),
-                    selectedBill.getIssuer());
+                    displayInfo);
                 String confirm = scanner.nextLine();
                 
                 if (!confirm.equalsIgnoreCase("yes")) {
@@ -212,13 +231,20 @@ public class TransactionMenuUI {
 
                 if (TransactionManager.getInstance().executePayment(payment)) {
                     System.out.println("Payment successful!");
-                    System.out.printf("New balance: %.2f€%n", fromAccount.getBalance());//show the new balance after the payment
-                	billManager.markBillAsPaid(selectedBill , customer);
+                    System.out.printf("New balance: %.2f€%n", fromAccount.getBalance());
+
+                    StatementManager sm = StatementManager.getInstance();
+                    sm.addTransactionToStatement(payment);
+                    sm.saveStatements(
+                        sm.getStatementsForAccount(fromAccount.getIban()),
+                        "data/statements/" + fromAccount.getIban() + ".csv"
+                    );
+
+                    billManager.markBillAsPaid(selectedBill , customer);
                 } else {
                     System.out.println("Payment failed!");
                 }
-                
-           }
+             }
         }catch (NumberFormatException e) {
         	System.out.println("Invalid input. Please enter a number.");
 		}

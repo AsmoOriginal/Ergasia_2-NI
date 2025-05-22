@@ -135,7 +135,7 @@ public class AdminMenuUI {
             return;
         }
 
-        List<Bill> allBills = billManager.loadBillsForCustomerFromFolder("data/bills", customer);
+        List<Bill> allBills = billManager.loadBillsByCustomerVat("data/bills", customer);
         List<Bill> unpaidBills = allBills.stream()
                                          .filter(bill -> !bill.isPaid())
                                          .collect(Collectors.toList());
@@ -204,22 +204,27 @@ public class AdminMenuUI {
         }
 
         Payment payment = new Payment(chargeAccount, toAccount, amount, selectedBill);
-
-       
         boolean success = payment.execute();
 
         if (success) {
-            selectedBill.setPaid(true); 
-            billManager.saveBillsByDate(List.of(selectedBill), "data/bills");
-            
-            // Αποθήκευση ενημερωμένων λογαριασμών
+            billManager.markBillAsPaid(selectedBill, customer);
             accountManager.saveAccountsToFile("data/accounts/accounts.csv");
+
+            // Προσθήκη της συναλλαγής στο statement και αποθήκευση
+            StatementManager sm = StatementManager.getInstance();
+            sm.addTransactionToStatement(payment);
+            sm.saveStatements(
+                sm.getStatementsForAccount(chargeAccount.getIban()),
+                "data/statements/" + chargeAccount.getIban() + ".csv"
+            );
 
             System.out.println("Bill paid successfully.");
         } else {
             System.out.println("Payment failed.");
         }
     }
+    
+
 
 
 

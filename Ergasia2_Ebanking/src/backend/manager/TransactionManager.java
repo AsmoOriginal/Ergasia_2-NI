@@ -39,24 +39,14 @@ public class TransactionManager {
 
         if (success) {
             System.out.println(transaction.getClass().getSimpleName() + " executed successfully.");
-            // Update the account balance based on the type of transaction
-            if (transaction instanceof Deposit) {
-                updateAccountBalance(((Deposit) transaction).getFromAccount(), transaction.getAmount());
-            } else if (transaction instanceof Withdrawal) {
-                updateAccountBalance(((Withdrawal) transaction).getFromAccount(), transaction.getAmount().negate());
-            } else if (transaction instanceof Transfer) {
-                updateAccountBalance(((Transfer) transaction).getFromAccount(), transaction.getAmount().negate());
-                updateAccountBalance(((Transfer) transaction).getToAccount(), transaction.getAmount());
-            } else if (transaction instanceof Payment) {
-                updateAccountBalance(((Payment) transaction).getFromAccount(), transaction.getAmount().negate());
-            }
-            addTransaction(transaction);
+            addTransaction(transaction); // μόνο logging
             return true;
         } else {
             System.out.println(transaction.getClass().getSimpleName() + " failed.");
             return false;
         }
     }
+
 
     // Execute Deposit and return true or false based on success
     public boolean executeDeposit(Deposit deposit) {
@@ -96,17 +86,8 @@ public class TransactionManager {
         return transactions;
     }
     
- // Μέθοδος για να χρεώσουμε τα τέλη διατήρησης στους επιχειρηματικούς λογαριασμούς
- /*   public void applyMaintenanceFees() {
-        for (Account account : accounts) {
-            if (account instanceof BusinessAccount) {
-                BigDecimal balance = account.getBalance();
-                balance = balance.subtract(((BusinessAccount) account).getMaintenanceFee());
-                account.setBalance(balance);
-            }
-        }
-    }
-*/
+    
+
 	public StatementManager getStatementManager() {
 		return statementManager;
 	}

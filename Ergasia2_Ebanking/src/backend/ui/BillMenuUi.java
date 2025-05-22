@@ -36,7 +36,7 @@ public class BillMenuUi {
     }
 	public static void loadIssuedBills(Customer customer) {
         BillManager billManager = BillManager.getInstance(); // υποθέτουμε singleton
-        List<Bill> bills = billManager.loadBillsForCustomerFromFolder("data/bills",customer);
+        List<Bill> bills = billManager.loadBillsByCustomerVat("data/bills",customer);
 
         if (bills.isEmpty()) {
             System.out.println("No bills found for customer " + customer.getVatNumber());
@@ -63,7 +63,7 @@ public class BillMenuUi {
 	
 	 public static void showPaidBills(Customer customer) {
  	    BillManager billManager = BillManager.getInstance();
- 	    List<Bill> bills = billManager.loadBillsForCustomerFromFolder("data/bills", customer);
+ 	    List<Bill> bills = billManager.loadBillsByCustomerVat("data/bills", customer);
 
  	    if (bills.isEmpty()) {
  	        System.out.println("No bills found for customer " + customer.getVatNumber());

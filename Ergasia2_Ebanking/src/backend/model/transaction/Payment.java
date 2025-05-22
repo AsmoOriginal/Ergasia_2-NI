@@ -60,9 +60,7 @@ public class Payment extends Transaction {
             fromAccount.setBalance(fromAccount.getBalance().subtract(amount));
             toAccount.setBalance(toAccount.getBalance().add(amount));
             bill.setPaid(true); // Σημειώνεται ως εξοφλημένο
-            logger.info("Bill payment executed successfully. RF Code: " + bill.getRfCode()
-                        + " | Amount: " + amount
-                        + " | Date: " + getFormattedDateTime());
+            
             return true;
         } catch (Exception e) {
             logger.severe("Payment execution error: " + e.getMessage());

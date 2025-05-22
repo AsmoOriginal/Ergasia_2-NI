@@ -109,8 +109,11 @@ public class AccountStatement implements Storable {
         
         sb.append("transactions:");
 
-        for (Transaction transaction : transactions) {
-            sb.append("{").append(transaction.marshal()).append("}");  // περικλείουμε κάθε transaction σε {} για ασφαλές split
+        for (int i = 0; i < transactions.size(); i++) {
+            sb.append("{").append(transactions.get(i).marshal()).append("}");
+            if (i < transactions.size() - 1) {
+                sb.append(";");  // separator for multiple transactions
+            }
         }
 
         return sb.toString();

@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 import backend.manager.BillManager;
 import backend.manager.UserManager;
 import backend.model.bill.Bill;
+import backend.model.user.Customer;
 
 public class CompanyBillAdminMenu {
 
@@ -51,10 +52,10 @@ public class CompanyBillAdminMenu {
 
     private static void showIssuedBills(Scanner scanner) {
         System.out.print("Enter Company VAT (issuer VAT): ");
-        String issuerVat = scanner.nextLine();
+       
 
    
-        List<Bill> issuedBills = getBillManager().loadBillsFromSingleFolder("data/bills/issued", issuerVat);
+        List<Bill> issuedBills = getBillManager().loadAllBillsFromFolder("data/bills/issued");
 
         if (issuedBills.isEmpty()) {
             System.out.println("No issued bills found for this company.");
@@ -71,17 +72,10 @@ public class CompanyBillAdminMenu {
     
     private static void showPaidBills(Scanner scanner) {
         System.out.print("Enter Company VAT (issuer VAT): ");
-        String issuerVat = scanner.nextLine();
+       
 
-        boolean exists = userManager.getCustomers().stream()
-                .anyMatch(c -> c.getVatNumber().equals(issuerVat));
 
-        if (!exists) {
-            System.out.println("Company with VAT " + issuerVat + " not found.");
-            return;
-        }
-
-        List<Bill> bills = billManager.loadBillsByIssuerFromFolder("data/bills/payed", issuerVat);
+        List<Bill> bills = billManager.loadAllBillsFromFolder("data/bills/payed");
         List<Bill> paidBills = bills.stream()
                 .filter(Bill::isPaid)
                 .collect(Collectors.toList());
@@ -100,17 +94,21 @@ public class CompanyBillAdminMenu {
 
     private static void loadCompanyBills(Scanner scanner) {
         System.out.print("Enter Company VAT (issuer VAT): ");
-        String issuerVat = scanner.nextLine();
+        String issuerVat = scanner.nextLine().trim();
 
-        boolean exists = userManager.getCustomers().stream()
-                .anyMatch(c -> c.getVatNumber().equals(issuerVat));
+        // Βρες τον Customer με βάση το VAT
+        Customer issuerCustomer = UserManager.getInstance().getCustomers().stream()
+            .filter(c -> c.getVatNumber().equals(issuerVat))
+            .findFirst()
+            .orElse(null);
 
-        if (!exists) {
+        if (issuerCustomer == null) {
             System.out.println("Company with VAT " + issuerVat + " not found.");
             return;
         }
 
-        List<Bill> bills = billManager.loadBillsForCustomerFromFolder("data/bills/issued", issuerVat);
+        // Τώρα περνάμε το Customer (issuerCustomer) στη μέθοδο
+        List<Bill> bills = BillManager.getInstance().loadBillsByIssuerVat("data/bills", issuerCustomer);
 
         if (bills.isEmpty()) {
             System.out.println("No bills found for this company.");
@@ -120,7 +118,9 @@ public class CompanyBillAdminMenu {
         System.out.println("All Company Bills:");
         for (Bill bill : bills) {
             System.out.printf("Bill ID: %s, RF Code: %s, Amount: %s, Paid: %s%n",
-                    bill.getBillId(), bill.getRfCode(), bill.getAmount().toPlainString(),
+                    bill.getBillId(),
+                    bill.getRfCode(),
+                    bill.getAmount().toPlainString(),
                     bill.isPaid() ? "Yes" : "No");
         }
     }
