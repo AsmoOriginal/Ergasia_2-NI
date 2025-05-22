@@ -21,8 +21,8 @@ public abstract class StandingOrder implements Storable{
     private String title;
     private String description;
     private Customer customer;
-    private LocalDate startDate;        // Ημερομηνία έναρξης
-    private LocalDate endDate;           // Ημερομηνία λήξης
+    protected LocalDate startDate;        // Ημερομηνία έναρξης
+    protected LocalDate endDate;           // Ημερομηνία λήξης
     private BigDecimal fee;
     private Account chargeAccount; //account that gets charged
     private Account creditAccount;
@@ -144,15 +144,15 @@ public abstract class StandingOrder implements Storable{
 	public String marshal() {
 	    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-	    return "type=" + type
-	        + ",orderId=" + orderId
-	        + ",title=" + title
-	        + ",description=" + description
-	        + ",customerVat=" + (customer != null ? customer.getVatNumber() : "null")
-	        + ",startDate=" + (startDate != null ? startDate.format(formatter) : "null")
-	        + ",endDate=" + (endDate != null ? endDate.format(formatter) : "null")
-	        + ",fee=" + (fee != null ? fee.toPlainString() : "0.00")
-	        + ",chargeAccount=" + (chargeAccount != null ? chargeAccount.getIban() : "null");
+	    return "type:" + type
+	        + ",orderId:" + orderId
+	        + ",title:" + title
+	        + ",description:" + description
+	        + ",customerVat:" + (customer != null ? customer.getVatNumber() : "null")
+	        + ",startDate:" + (startDate != null ? startDate.format(formatter) : "null")
+	        + ",endDate:" + (endDate != null ? endDate.format(formatter) : "null")
+	        + ",fee:" + (fee != null ? fee.toPlainString() : "0.00")
+	        + ",chargeAccount:" + (chargeAccount != null ? chargeAccount.getIban() : "null");
 	}
 
 
@@ -161,21 +161,18 @@ public abstract class StandingOrder implements Storable{
 	
 	//create a map to split the value form : type and link them so it doesn't matter the way it is written in the csv file 
 	public static Map<String, String> parseLine(String line) {
-        Map<String, String> map = new HashMap<>();
-        
-        if (line.startsWith("PaymentOrder") || line.startsWith("TransferOrder")) {
-            line = line.substring(2);
-        }
-        
-        String[] keyPairs = line.split(",");
-        for (String pair : keyPairs) {
-            String[] entryPair = pair.split(":", 2);
-            if (entryPair.length == 2) {
-                map.put(entryPair[0], entryPair[1]);
-            }
-        }
-        return map;
-    }
+	    Map<String, String> map = new HashMap<>();
+
+	    String[] keyPairs = line.split(",");
+	    for (String pair : keyPairs) {
+	        String[] entryPair = pair.split(":", 2);
+	        if (entryPair.length == 2) {
+	            map.put(entryPair[0].trim(), entryPair[1].trim());
+	        }
+	    }
+	    return map;
+	}
+
 	
 	//Unmarshal the common variables of TransferOrder and PaymentOrder
 	@Override
@@ -224,5 +221,6 @@ public abstract class StandingOrder implements Storable{
         }
     }
 
+    
     
 }

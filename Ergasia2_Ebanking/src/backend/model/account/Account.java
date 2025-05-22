@@ -2,6 +2,7 @@ package backend.model.account;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -36,6 +37,7 @@ public abstract class Account implements Storable {
 		this.dateCreated = dateCreated;
 		this.interestRate = interestRate;
 		this.balance = balance;
+		this.accruedInterest = BigDecimal.ZERO;
 		 
 	}
 	
@@ -100,8 +102,14 @@ public abstract class Account implements Storable {
     protected static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     public void accrueDailyInterest() {
+    	
 	    BigDecimal dailyRate = interestRate.divide(BigDecimal.valueOf(365), MathContext.DECIMAL64);
 	    BigDecimal interestForToday = balance.multiply(dailyRate);
+	   
+	    		setBalance(getBalance()
+	    		    .add(accruedInterest)
+	    		    .setScale(2, RoundingMode.HALF_UP));
+
 	    accruedInterest = accruedInterest.add(interestForToday);
 	}
 	

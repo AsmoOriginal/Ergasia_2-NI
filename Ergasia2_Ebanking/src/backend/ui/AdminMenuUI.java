@@ -3,6 +3,7 @@ package backend.ui;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Scanner;
 import java.util.stream.Collectors;
@@ -26,6 +27,7 @@ public class AdminMenuUI {
     private static StatementManager statementManager;
     private static List<Account> accounts;
     private static BillManager billManager= BillManager.getInstance();
+    private static LocalDate systemDate = LocalDate.of(2025, 4, 1);
     
     public static void initialize(UserManager userM, AccountManager accountM, StandingOrderManager standingOrderM, StatementManager statementM) {
         userManager = userM;
@@ -91,11 +93,17 @@ public class AdminMenuUI {
         String input = scanner.nextLine();
         try {
             LocalDate targetDate = LocalDate.parse(input, DateTimeFormatter.ISO_LOCAL_DATE);
-            LocalDate startDate = LocalDate.now(); // ή από κάποιο system date αν το έχετε αλλού
-            TimeSimulator simulator = new TimeSimulator(startDate, accountManager, standingOrderManager);
+            if (targetDate.isBefore(systemDate)) {
+                System.out.println("Target date is before current simulation date: " + systemDate);
+                return;
+            }
+
+            TimeSimulator simulator = new TimeSimulator(systemDate, accountManager, standingOrderManager);
             simulator.simulateUntil(targetDate);
+            systemDate = targetDate; // ενημέρωση της systemDate
+
             System.out.println("Time simulation finished.");
-        } catch (Exception e) {
+        } catch (DateTimeParseException e) {
             System.out.println("Invalid date format. Please use yyyy-MM-dd.");
         }
     }

@@ -54,7 +54,7 @@ public class CompanyBillAdminMenu {
         String issuerVat = scanner.nextLine();
 
    
-        List<Bill> issuedBills = getBillManager().loadBillsByIssuerFromFolder("data/bills", issuerVat);
+        List<Bill> issuedBills = getBillManager().loadBillsFromSingleFolder("data/bills/issued", issuerVat);
 
         if (issuedBills.isEmpty()) {
             System.out.println("No issued bills found for this company.");
@@ -81,7 +81,7 @@ public class CompanyBillAdminMenu {
             return;
         }
 
-        List<Bill> bills = billManager.loadBillsByIssuerFromFolder("data/bills", issuerVat);
+        List<Bill> bills = billManager.loadBillsByIssuerFromFolder("data/bills/payed", issuerVat);
         List<Bill> paidBills = bills.stream()
                 .filter(Bill::isPaid)
                 .collect(Collectors.toList());
@@ -110,7 +110,7 @@ public class CompanyBillAdminMenu {
             return;
         }
 
-        List<Bill> bills = billManager.loadBillsByIssuerFromFolder("data/bills", issuerVat);
+        List<Bill> bills = billManager.loadBillsForCustomerFromFolder("data/bills/issued", issuerVat);
 
         if (bills.isEmpty()) {
             System.out.println("No bills found for this company.");

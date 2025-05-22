@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -76,65 +77,69 @@ public class BillManager {
         }
     }
 
-    public List<Bill> loadBillsForCustomerFromFolder(String folderPath, Customer customer) {
+    public List<Bill> loadBillsForCustomerFromFolder(String rootFolderPath, Customer customer) {
         List<Bill> customerBills = new ArrayList<>();
 
         if (customer == null || customer.getVatNumber() == null) {
-            System.err.println("ERROR Customer or VAT number is null");
+            System.err.println("ERROR: Customer or VAT number is null");
             return customerBills;
         }
 
-        File folder = new File(folderPath);
-        if (!folder.exists() || !folder.isDirectory()) {
-            System.err.println("ERROR Folder not found or not a directory: " + folderPath);
+        File rootFolder = new File(rootFolderPath);
+        if (!rootFolder.exists() || !rootFolder.isDirectory()) {
+            System.err.println("ERROR: Root folder not found or not a directory: " + rootFolderPath);
             return customerBills;
         }
 
-        File[] files = folder.listFiles((dir, name) -> name.toLowerCase().endsWith(".csv"));
-        if (files == null || files.length == 0) {
-            System.err.println("ERROR No CSV files found in folder: " + folderPath);
+        // Αναζήτηση σε όλους τους υποφακέλους (issued, payed, κ.λπ.)
+        File[] subfolders = rootFolder.listFiles(File::isDirectory);
+        if (subfolders == null || subfolders.length == 0) {
+            System.err.println("ERROR: No subfolders found in: " + rootFolderPath);
             return customerBills;
         }
 
-        for (File file : files) {
-            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    Bill bill = new Bill();
-                    bill.unmarshal(line);
+        for (File subfolder : subfolders) {
+            File[] files = subfolder.listFiles((dir, name) -> name.toLowerCase().endsWith(".csv"));
+            if (files == null) continue;
 
-                    if (bill.getCustomerVat() != null && bill.getCustomerVat().getPrimaryOwner().getVatNumber().equalsIgnoreCase(customer.getVatNumber())) {
-                        customerBills.add(bill);
+            for (File file : files) {
+                try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        Bill bill = new Bill();
+                        bill.unmarshal(line);
+
+                        if (bill.getCustomerVat() != null &&
+                            bill.getCustomerVat().getPrimaryOwner().getVatNumber().equalsIgnoreCase(customer.getVatNumber())) {
+                            customerBills.add(bill);
+                        }
                     }
+                } catch (IOException e) {
+                    System.err.println("ERROR: Failed to read file: " + file.getAbsolutePath());
+                    e.printStackTrace();
+                } catch (Exception e) {
+                    System.err.println("ERROR: Failed to parse line in file: " + file.getAbsolutePath());
+                    e.printStackTrace();
                 }
-            } catch (IOException e) {
-                System.err.println("ERROR Failed to read file: " + file.getName());
-                e.printStackTrace();
-            } catch (Exception e) {
-                System.err.println("ERROR Failed to parse line in file: " + file.getName());
-                e.printStackTrace();
             }
         }
 
-        System.out.println("Issued Bills for " + customer.getVatNumber() + ": " + customerBills.size());
+        System.out.println("Total Bills (issued + payed) for " + customer.getVatNumber() + ": " + customerBills.size());
         return customerBills;
     }
 
     
-    public List<Bill> loadBillsByIssuerFromFolder(String folderPath, String issuerVat) {
-        List<Bill> issuedBills = new ArrayList<>();
+    public List<Bill> loadBillsFromSingleFolder(String folderPath, Customer customer) {
+        List<Bill> customerBills = new ArrayList<>();
 
         File folder = new File(folderPath);
         if (!folder.exists() || !folder.isDirectory()) {
-            System.err.println("ERROR Folder not found or not a directory: " + folderPath);
-            return issuedBills;
+            System.err.println("ERROR: Folder not found or not a directory: " + folderPath);
+            return customerBills;
         }
 
         File[] files = folder.listFiles((dir, name) -> name.toLowerCase().endsWith(".csv"));
-        if (files == null || files.length == 0) {
-            System.err.println("ERROR No CSV files found in folder: " + folderPath);
-            return issuedBills;
-        }
+        if (files == null) return customerBills;
 
         for (File file : files) {
             try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
@@ -142,44 +147,50 @@ public class BillManager {
                 while ((line = reader.readLine()) != null) {
                     Bill bill = new Bill();
                     bill.unmarshal(line);
-
-                    if (bill.getIssuer().equals(issuerVat)) {
-                        issuedBills.add(bill);
+                    if (bill.getCustomerVat() != null &&
+                        bill.getCustomerVat().getPrimaryOwner().getVatNumber().equalsIgnoreCase(customer.getVatNumber())) {
+                        customerBills.add(bill);
                     }
                 }
-            } catch (IOException e) {
-                System.err.println("ERROR Failed to read file: " + file.getName());
-                e.printStackTrace();
             } catch (Exception e) {
-                System.err.println("ERROR Failed to parse line in file: " + file.getName());
+                System.err.println("ERROR reading file " + file.getName());
                 e.printStackTrace();
             }
         }
 
-        System.out.println("Issued Bills for issuer VAT " + issuerVat + ": " + issuedBills.size());
-        return issuedBills;
+        return customerBills;
     }
 
     
     
+    
     public void markBillAsPaid(Bill billToPay, Customer customer) {
-        // set the bill to paid
-    	billToPay.setPaid(true);
+        billToPay.setPaid(true);
 
-        // load all the bills from the csv
-        List<Bill> allBills = loadBillsForCustomerFromFolder("data/bills", customer);
+        // 1. Φόρτωσε όλα τα issued bills του πελάτη
+        List<Bill> issuedBills = loadBillsFromSingleFolder("data/bills/issued", customer);
 
-        // find the right bill and pay it
-        for (Bill bill : allBills) {
+        // 2. Αφαίρεσε το bill που πληρώθηκε
+        Iterator<Bill> iterator = issuedBills.iterator();
+        while (iterator.hasNext()) {
+            Bill bill = iterator.next();
             if (bill.getRfCode().equals(billToPay.getRfCode())) {
-                bill.setPaid(true); // change the bill to paid
+                iterator.remove();  // remove from issued
                 break;
             }
         }
 
-        // Save to the csv file
-        saveBillsByDate(allBills , "data/bills");	
+        // 3. Αποθήκευσε ξανά τα υπόλοιπα issued bills (χωρίς το πληρωμένο)
+        saveBillsByDate(issuedBills, "data/bills/issued");
+
+        // 4. Φόρτωσε τα paid bills και πρόσθεσε το νέο
+        List<Bill> paidBills = loadBillsFromSingleFolder("data/bills/payed", customer);
+        paidBills.add(billToPay);
+
+        // 5. Αποθήκευσε όλα τα paid bills ξανά
+        saveBillsByDate(paidBills, "data/bills/payed");
     }
+
 
     
 

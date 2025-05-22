@@ -5,6 +5,8 @@ import java.io.BufferedWriter;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -14,6 +16,8 @@ import java.util.Map;
 import backend.model.account.Account;
 import backend.model.account.BusinessAccount;
 import backend.model.account.PersonalAccount;
+import backend.model.order.StandingOrder;
+import backend.model.user.Customer;
 
 
 public class AccountManager {
@@ -165,10 +169,36 @@ public class AccountManager {
         Account.setNextId(max); 
     }
     
-    //get the accounts by vatNumber and use lists for the users with the same vatNumber that have more than one accounts
-    public Account getAccountsByVatNumber(String vat) {
-        
-    	 return accountsByVat.get(vat);
-	
+  //get the accounts by vatNumber and use lists for the users with the same vatNumber that have more than one accounts
+    public Account getAccountsByVatNumber(String vatNumber) {
+        return accountsByVat.get(vatNumber);
     }
+    
+    public void chargeMonthlyFees(LocalDate date) {
+        List<StandingOrder> orders = StandingOrderManager.getInstance().getAllOrders();
+
+        for (StandingOrder order : orders) {
+            BigDecimal fee = order.getFee();
+
+
+            Account account = order.getChargeAccount();
+            if (account != null && fee != null && fee.compareTo(BigDecimal.ZERO) > 0) {
+                account.setBalance(account.getBalance()
+                        .subtract(fee)
+                        .setScale(2, RoundingMode.HALF_UP));
+
+                if (account.getBalance().compareTo(fee) >= 0) {
+                    System.out.println("Fee: " + fee + " for account: " + account.getIban());
+                    account.setBalance(account.getBalance().subtract(fee));
+                    System.out.println("Charged monthly fee of " + fee + " for account " + account.getIban() );
+                } else {
+                    System.out.println("Insufficient balance for monthly fee in account " + account.getIban() );
+                }
+            }
+        }
+
+        saveAccountsToFile("data/accounts/accounts.csv");
+    }
+    
+    
 }

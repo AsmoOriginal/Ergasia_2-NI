@@ -155,6 +155,7 @@ public class Bill implements Storable {
     // Marshal: μετατροπή σε string
 	@Override
 	public String marshal() {
+		String paidStatus = isPaid ? "true" : "false";
 	    return "type:Bill," +
 	           "paymentCode:" + rfCode + "," +
 	           "billNumber:" + billId + "," +
@@ -162,59 +163,68 @@ public class Bill implements Storable {
 	           "customer:" + (customerVat != null && customerVat.getPrimaryOwner() != null ? customerVat.getPrimaryOwner().getVatNumber() : "null") + "," +
 	           "amount:" + amount.toPlainString() + "," +
 	           "issueDate:" + issueDate + "," +
-	           "dueDate:" + dueDate;
+	           "dueDate:" + dueDate
+	           + ",paid:" + paidStatus;
 	}
 
 
     // Unmarshal: από string σε αντικείμενο
-    @Override
-    public void unmarshal(String data) {
-    	try {
-            String[] parts = data.split(",");
+	@Override
+	public void unmarshal(String data) {
+	    try {
+	        String[] parts = data.split(",");
 
-            this.rfCode = parts[1].split(":", 2)[1].trim();
-            this.billId = parts[2].split(":", 2)[1].trim();
-            String issuerId = parts[3].split(":", 2)[1].trim();
-            Account issuerAccount = AccountManager.getInstance().getAccountsByVatNumber(issuerId);
+	        this.rfCode = parts[1].split(":", 2)[1].trim();
+	        this.billId = parts[2].split(":", 2)[1].trim();
 
-            if (issuerAccount == null) {
-                System.err.println("WARNING: No issuer account found for VAT " + issuerId + ", creating temporary account.");
-                Customer issuerCustomer = UserManager.getInstance().findUserByVat(issuerId);
-                if (issuerCustomer != null) {
-                    issuerAccount = new PersonalAccount(); // ή CompanyAccount, αν έχεις ένδειξη
-                    issuerAccount.setPrimaryOwner(issuerCustomer);
-                } else {
-                    System.err.println("ERROR: No customer found for VAT " + issuerId + ". Cannot set issuer.");
-                }
-            }
-            
-            
-            String custId = parts[4].split(":", 2)[1].trim();
-            Account custAccount = AccountManager.getInstance().getAccountsByVatNumber(custId);
+	        String issuerId = parts[3].split(":", 2)[1].trim();
+	        Account issuerAccount = AccountManager.getInstance().getAccountsByVatNumber(issuerId);
+	        if (issuerAccount == null) {
+	            System.err.println("WARNING: No issuer account found for VAT " + issuerId + ", creating temporary account.");
+	            Customer issuerCustomer = UserManager.getInstance().findUserByVat(issuerId);
+	            if (issuerCustomer != null) {
+	                issuerAccount = new PersonalAccount();
+	                issuerAccount.setPrimaryOwner(issuerCustomer);
+	            } else {
+	                System.err.println("ERROR: No customer found for VAT " + issuerId + ". Cannot set issuer.");
+	            }
+	        }
 
-            if (custAccount == null) {
-                System.err.println("WARNING: No account found for VAT " + custId + ", creating temporary account.");
-                Customer customer = UserManager.getInstance().findUserByVat(custId);
-                if (customer != null) {
-                	custAccount  = new PersonalAccount();
-                	custAccount.setPrimaryOwner(customer);
-                } else {
-                    System.err.println("ERROR: No customer found for VAT " + custId + ". Cannot set customerVat.");
-                }
-            }
-            this.issuer = issuerAccount; 
-            this.customerVat = custAccount;
-            this.amount = new BigDecimal(parts[5].split(":", 2)[1].trim());
-            this.issueDate = LocalDate.parse(parts[6].split(":", 2)[1].trim());
+	        String custId = parts[4].split(":", 2)[1].trim();
+	        Account custAccount = AccountManager.getInstance().getAccountsByVatNumber(custId);
+	        if (custAccount == null) {
+	            System.err.println("WARNING: No account found for VAT " + custId + ", creating temporary account.");
+	            Customer customer = UserManager.getInstance().findUserByVat(custId);
+	            if (customer != null) {
+	                custAccount = new PersonalAccount();
+	                custAccount.setPrimaryOwner(customer);
+	            } else {
+	                System.err.println("ERROR: No customer found for VAT " + custId + ". Cannot set customerVat.");
+	            }
+	        }
 
-            if (parts.length > 7 && parts[7].startsWith("dueDate:")) {
-                this.dueDate = LocalDate.parse(parts[7].split(":", 2)[1].trim());
-            }
-              
-           
-        } catch (Exception e) {
-            System.err.println("Error in Bill.unmarshal: " + data);
-            e.printStackTrace();
-        }
-    }
+	        this.issuer = issuerAccount;
+	        this.customerVat = custAccount;
+	        this.amount = new BigDecimal(parts[5].split(":", 2)[1].trim());
+	        this.issueDate = LocalDate.parse(parts[6].split(":", 2)[1].trim());
+
+	        if (parts.length > 7 && parts[7].startsWith("dueDate:")) {
+	            this.dueDate = LocalDate.parse(parts[7].split(":", 2)[1].trim());
+	        }
+
+	        // Νέος κώδικας: αναζήτηση και ανάθεση paid
+	        this.isPaid = false;  // default
+	        for (String part : parts) {
+	            if (part.startsWith("paid:")) {
+	                this.isPaid = Boolean.parseBoolean(part.split(":", 2)[1].trim());
+	                break;
+	            }
+	        }
+
+	    } catch (Exception e) {
+	        System.err.println("Error in Bill.unmarshal: " + data);
+	        e.printStackTrace();
+	    }
+	}
+
 }

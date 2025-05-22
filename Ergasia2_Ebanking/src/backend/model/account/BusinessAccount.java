@@ -10,25 +10,19 @@ import backend.model.user.Customer;
 
 public class BusinessAccount extends Account{
 	
-     private BigDecimal maintenanceFee; // Μηνιαίο τέλος διατήρησης 
+      
      
      //default constructor
      public BusinessAccount() {
     	    super("BusinessAccount", "", null, LocalDate.now(), BigDecimal.ZERO, BigDecimal.ZERO);
-    	    this.maintenanceFee = BigDecimal.ZERO;
+    	    
     	}
      
      public BusinessAccount(Customer primaryOwner, BigDecimal interestRate) {
     	    super("BusinessAccount", generateIban("200"), primaryOwner, LocalDate.now(), interestRate, BigDecimal.ZERO);
     	}
      
-	public BigDecimal getMaintenanceFee() {
-		return maintenanceFee;
-	}
-
-	public void setMaintenanceFee(BigDecimal maintenanceFee) {
-		this.maintenanceFee = maintenanceFee;
-	}
+	 
 	
 
 	

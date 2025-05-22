@@ -78,7 +78,7 @@ public class Payment extends Transaction {
     @Override
     public String marshal() {
         return String.format(
-            "type:Transaction,id:%s,fromIban:%s,toIban:%s,amount:%s,dateTime:%s,transactor:%s,rfCode:%s",
+            "type:Payment,id:%s,fromIban:%s,toIban:%s,amount:%s,dateTime:%s,transactor:%s,rfCode:%s",
             getId(),
             getFromAccount() != null ? getFromAccount().getIban() : "null",
             getToAccount() != null ? getToAccount().getIban() : "null",

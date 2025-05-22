@@ -64,16 +64,17 @@ public class StandingOrderManager {
      
      //φτιάχνουμε το map που θα αντιστοιχίσει strings με τα αντικείμενα της inner class και είναι final για να μη δώσω άλλη αναφορά
      public final Map<String, OrderGroup> ordersByStatus = new HashMap<>();
+
+	private List<StandingOrder> orders;
 	
   
 	
      public List<StandingOrder> loadStandingOrdersFromFolder(String folderPath) {
     	    List<StandingOrder> standingOrders = new ArrayList<>();
-
+    	    
     	    File folder = new File(folderPath);
     	    
-    	    System.out.println("Reading folder: " + folderPath);
-    	    System.out.println("Found files: " + Arrays.toString(folder.list()));
+    	    
     	    if (!folder.exists() || !folder.isDirectory()) {
     	        System.err.println("ERROR Folder not found or not a directory: " + folderPath);
     	        return standingOrders;
@@ -95,7 +96,7 @@ public class StandingOrderManager {
     	            	} else if (line.contains("type:TransferOrder")) {
     	            	    order = new TransferOrder();
     	            	} else  {
-    	                    continue; // άκυρη γραμμή, παράλειψέ την
+    	                    continue; 
     	                }
     	                order.unmarshal(line);
     	                standingOrders.add(order);
@@ -104,9 +105,12 @@ public class StandingOrderManager {
     	                OrderGroup group = ordersByStatus.get(status);
     	                
     	                if (order instanceof PaymentOrder) {
+    	                	group = ordersByStatus.computeIfAbsent(status, k -> new OrderGroup());
     	                    group.payments.add((PaymentOrder) order);
     	                } else if (order instanceof TransferOrder) {
+    	                	group = ordersByStatus.computeIfAbsent(status, k -> new OrderGroup());
     	                    group.transfers.add((TransferOrder) order);
+    	                    
     	                }
     	            }
     	            
@@ -120,6 +124,7 @@ public class StandingOrderManager {
     	        }
     	    }
 
+    	    this.orders = standingOrders;
     	    System.out.println("Loaded Standing Orders: " + standingOrders.size());
     	    
     	    return standingOrders;
@@ -160,72 +165,69 @@ public class StandingOrderManager {
 
      
     //Kάνε execute τα orders για μια συγκεκριμένη ημερομηνία "date"
-     public void executeOrdersForDate(LocalDate date) {
-    	 //the array list of  payment and transfer active orders
-    	 OrderGroup activeOrders = ordersByStatus.get("active");
-    	 
-    	 //execute paymentOrders
-    	 for(PaymentOrder paymentOrder : activeOrders.payments) {
-    		 if(paymentOrder.shouldExecute(date)) {
-    			 executeOrderAndRetry(paymentOrder, date);
-    		 }
-    		 else if(date.compareTo(paymentOrder.getEndDate()) == 1) {
-    			 moveToExpired(paymentOrder);
-    		 }
-    	 }
-    	 
-    	 //execute  transferOrders
-    	 for(TransferOrder transferOrder : activeOrders.transfers) {
-    		 if(transferOrder.execute(date) != null) {
-    			 executeOrderAndRetry(transferOrder, date);
-    		 }
-    		 else if(date.compareTo(transferOrder.getEndDate()) == 1) {
-    			 moveToExpired(transferOrder);
-    		 }
-    	 }
+	public void executeOrdersForDate(LocalDate date) {
+	    System.out.println("Executing orders for date: " + date);
 
-     }
+	    OrderGroup activeOrders = ordersByStatus.get("active");
+
+	    // Payment Orders
+	    for (PaymentOrder paymentOrder : activeOrders.payments) {
+	        System.out.println("Checking PaymentOrder: " + paymentOrder);
+	        if (paymentOrder.shouldExecute(date)) {
+	            System.out.println("-> Executing PaymentOrder");
+	            executeOrderAndRetry(paymentOrder, date);
+	        } else if (date.isAfter(paymentOrder.getEndDate())) {
+	            System.out.println("-> PaymentOrder expired, moving to expired");
+	            moveToExpired(paymentOrder);
+	        } else {
+	            System.out.println("-> Not time to execute yet");
+	        }
+	    }
+
+	    // Transfer Orders
+	    for (TransferOrder transferOrder : activeOrders.transfers) {
+	        System.out.println("Checking TransferOrder: " + transferOrder);
+	        if (transferOrder.shouldExecute(date)) {
+	            System.out.println("-> Executing TransferOrder");
+	            executeOrderAndRetry(transferOrder, date);
+	        } else if (date.isAfter(transferOrder.getEndDate())) {
+	            System.out.println("-> TransferOrder expired, moving to expired");
+	            moveToExpired(transferOrder);
+	        } else {
+	            System.out.println("-> Not time to execute yet");
+	        }
+	    }
+	}
+
      
-     public void executeOrderAndRetry(StandingOrder order, LocalDate executionDate) {
-    	 int attempts = 0;
-    	 boolean success = false;
-    	 
-    	 while(attempts < 3 && !success) {
-    		 try {
-    			 setTransaction(null);
-    			 if (order instanceof PaymentOrder) {
-    				 PaymentOrder paymentOrder = (PaymentOrder) order;
+	public void executeOrderAndRetry(StandingOrder order, LocalDate executionDate) {
+	    int attempts = 0;
+	    boolean success = false;
 
-    	                setTransaction(new Payment(
-    	                    paymentOrder.getChargeAccount(),
-    	                    paymentOrder.getCreditAccount(),
-    	                    paymentOrder.getMaxAmount(),
-    	                    paymentOrder.getBill()
-    	                    
-    	                ));
-    	            } else if (order instanceof TransferOrder) {
-    	            	TransferOrder transferOrder = (TransferOrder) order;
+	    while (attempts < 3 && !success) {
+	        try {
+	            List<Transaction> transactions = order.execute(executionDate);  // 👈 ΠΡΑΓΜΑΤΙΚΗ ΕΚΤΕΛΕΣΗ
+	            if (!transactions.isEmpty()) {
+	                System.out.println("[EXECUTED] Order " + order.getOrderId() + " created " + transactions.size() + " transaction(s)");
+	                // Αν θέλεις να κάνεις κάτι με το transaction, π.χ. να το αποθηκεύσεις
+	                this.setTransaction(transactions.get(0));  // ή κάνε iterate αν έχει πολλά
+	            } else {
+	                System.out.println("[SKIPPED] Order " + order.getOrderId() + " returned no transactions");
+	            }
 
-    	                setTransaction(new Transfer(
-    	                    transferOrder.getChargeAccount(),
-    	                    transferOrder.getCreditAccount(),
-    	                    transferOrder.getAmount(),
-    	                    transferOrder.getSenderNote(),
-    	                    transferOrder.getReceiverNote()
-    	                ));
-    	            }
-    			
-    	            success = true;
-    	           saveOrders("ordes/active.csv"); // αποθηκεύει επιτυχημένες αλλαγές
-    			
-			} catch (Exception e) {
-				attempts++;
-				if (attempts >= 3) {
+	            saveOrders("orders/active.csv");
+	            success = true;
+
+	        } catch (Exception e) {
+	            attempts++;
+	            if (attempts >= 3) {
+	                System.err.println("[FAILED] Order " + order.getOrderId() + " failed after 3 attempts");
 	                moveToFailed(order);
-				}    
-			}
-    	 }
-     }
+	            }
+	        }
+	    }
+	}
+
      
      //method that removes the active order and add it to the failed(use that method for more uses if needed and cleaner code)
      private void moveToFailed(StandingOrder order) {
@@ -287,4 +289,10 @@ public class StandingOrderManager {
 		    }
 		    return result;
          }
+		
+		// Στο StandingOrderManager
+		public List<StandingOrder> getAllOrders() {
+		    return this.orders; 
+		}
+
 }

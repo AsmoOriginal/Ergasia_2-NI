@@ -1,13 +1,12 @@
 package backend.ui;
 
 
-import java.util.*;
-
+import java.util.List;
+import java.util.Scanner;
 
 import backend.manager.AccountManager;
-import backend.manager.BillManager;
+import backend.manager.UserManager;
 import backend.model.account.Account;
-import backend.model.bill.Bill;
 import backend.model.user.Customer;
 
 public class CustomerMenuUI {
@@ -16,10 +15,11 @@ public class CustomerMenuUI {
     	boolean running = true;
     
         AccountManager accountManager = AccountManager.getInstance();
+        UserManager userManager = UserManager.getInstance();
         //get all the accounts that exist 
         List<Account> allAccounts = accountManager.getAllAccounts();
         // use List.of(customer) to create a list with this customer
-        customer.bindAccountsToCustomers(List.of(customer), allAccounts);
+        userManager.bindAccountsToCustomers(List.of(customer), allAccounts);
         
         //get the accounts of this user
         List<Account> customerAccounts = customer.getAccounts();

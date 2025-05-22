@@ -201,7 +201,8 @@ public class TransactionMenuUI {
                 }
 
                 // create the payment 
-                Account toAccount = accountManager.getAccountsByVatNumber(selectedBill.getIssuer());
+             
+                Account toAccount = accountManager.getAccountByIban(selectedBill.getIssuer().getIban());
                 Payment payment = new Payment(
                     fromAccount,
                     toAccount,
@@ -212,7 +213,7 @@ public class TransactionMenuUI {
                 if (TransactionManager.getInstance().executePayment(payment)) {
                     System.out.println("Payment successful!");
                     System.out.printf("New balance: %.2f€%n", fromAccount.getBalance());//show the new balance after the payment
-                    billManager.markBillAsPaid(selectedBill , customer);
+                	billManager.markBillAsPaid(selectedBill , customer);
                 } else {
                     System.out.println("Payment failed!");
                 }

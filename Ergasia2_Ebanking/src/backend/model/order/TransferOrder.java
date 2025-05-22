@@ -2,6 +2,8 @@ package backend.model.order;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.Period;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -117,37 +119,50 @@ public class TransferOrder extends StandingOrder {
 	
 
 	@Override
-	public boolean shouldExecute(LocalDate currentDate) {
-	    
-	    return isActive() && (currentDate.isAfter(getStartDate()) || currentDate.isEqual(getStartDate())) 
-	            && (currentDate.isBefore(getEndDate()) || currentDate.isEqual(getEndDate()));
+	public boolean shouldExecute(LocalDate date) {
+	    System.out.println("[DEBUG] Checking execution for " + getOrderId() + " on " + date);
+
+	    if (date.isBefore(startDate) || date.isAfter(endDate)) {
+	        System.out.println("[DEBUG] Outside valid period");
+	        return false;
+	    }
+
+	    if (date.getDayOfMonth() != this.dayOfMonth) {
+	        System.out.println("[DEBUG] Not the correct day of month. Expected: " + this.dayOfMonth);
+	        return false;
+	    }
+
+	    long monthsBetween = ChronoUnit.MONTHS.between(startDate.withDayOfMonth(1), date.withDayOfMonth(1));
+	    boolean execute = monthsBetween % frequencyInMonths == 0;
+	    System.out.println("[DEBUG] Months between: " + monthsBetween + " -> execute: " + execute);
+
+	    return execute;
 	}
+
+
 
 	@Override
 	public List<Transaction> execute(LocalDate currentDate) {
-	    // Ελέγχει αν η εντολή πρέπει να εκτελεστεί
 	    if (shouldExecute(currentDate)) {
-	        // Ανακτά τον λογαριασμό με βάση το IBAN
+	        System.out.println("[EXECUTE] TransferOrder executing on " + currentDate);
+
 	        Account creditAccountObj = AccountManager.getInstance().getAccountByIban(getCreditAccount().getIban());
-	        
-	        // Δημιουργία μιας νέας συναλλαγής για τη μεταφορά
+
 	        Transfer transferTransaction = new Transfer(
-	        		getChargeAccount(),        // Λογαριασμός από
-                    creditAccountObj,        // Λογαριασμός προς
-                    amount,                  // Ποσό
-                    senderNote,              // Σημείωση αποστολέα
-                    receiverNote             // Σημείωση παραλήπτη
+	            getChargeAccount(),
+	            creditAccountObj,
+	            amount,
+	            senderNote,
+	            receiverNote
 	        );
-	        
-	        // Επιστρέφει μια λίστα με τις συναλλαγές που δημιουργήθηκαν
+
 	        List<Transaction> transactions = new ArrayList<>();
 	        transactions.add(transferTransaction);
-	        
-	        
-	        
+
 	        return transactions;
 	    } else {
-	        return new ArrayList<>(); // Αν δεν πρέπει να εκτελεστεί, επιστρέφει κενή λίστα
+	        return new ArrayList<>();
 	    }
-	}	
+	}
+
 }

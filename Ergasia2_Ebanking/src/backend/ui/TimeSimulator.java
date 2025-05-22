@@ -18,19 +18,33 @@ public class TimeSimulator {
     }
 
     public void simulateUntil(LocalDate targetDate) {
+       
+
+        if (targetDate.isBefore(currentDate)) {
+            System.out.println("Target date is before current date. Simulation skipped.");
+            return;
+        }
+        
         while (!currentDate.isAfter(targetDate)) {
-            System.out.println("Simulating day: " + currentDate);
+            System.out.println("----- Simulating day: " + currentDate + " -----");
+            
             accountManager.processDailyInterest(currentDate);
 
             if (currentDate.getDayOfMonth() == 1) {
-               accountManager.chargeMonthlyFees(currentDate);
+              
+                accountManager.chargeMonthlyFees(currentDate);
             }
 
+           
             standingOrderManager.executeOrdersForDate(currentDate);
 
             currentDate = currentDate.plusDays(1);
         }
+
+        System.out.println("----- Simulation complete. Current date: " + currentDate.minusDays(1) + " -----");
     }
+
+
 
     public LocalDate getCurrentDate() {
         return currentDate;

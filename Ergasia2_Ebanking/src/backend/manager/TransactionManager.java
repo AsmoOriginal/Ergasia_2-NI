@@ -97,7 +97,7 @@ public class TransactionManager {
     }
     
  // Μέθοδος για να χρεώσουμε τα τέλη διατήρησης στους επιχειρηματικούς λογαριασμούς
-    public void applyMaintenanceFees() {
+ /*   public void applyMaintenanceFees() {
         for (Account account : accounts) {
             if (account instanceof BusinessAccount) {
                 BigDecimal balance = account.getBalance();
@@ -106,7 +106,7 @@ public class TransactionManager {
             }
         }
     }
-
+*/
 	public StatementManager getStatementManager() {
 		return statementManager;
 	}
