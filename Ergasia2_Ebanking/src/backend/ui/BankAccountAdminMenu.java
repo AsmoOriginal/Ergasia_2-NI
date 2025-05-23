@@ -19,7 +19,7 @@ public class BankAccountAdminMenu {
     public BankAccountAdminMenu(List<Account> accounts, AccountManager accountManager, StatementManager accountStatementManager) {
         this.accounts = accounts;
         this.accountManager = accountManager;
-        
+        this.accountStatementManager = accountStatementManager; 
        
     }
 
@@ -118,7 +118,7 @@ public class BankAccountAdminMenu {
 
         System.out.println("\nAccount Statements for IBAN: " + iban);
         for (AccountStatement stmt : statements) {
-            System.out.println(stmt.marshal());  // ή ό,τι μέθοδο έχεις για εμφάνιση
+            System.out.println(stmt.marshal());  
         }
     }
     

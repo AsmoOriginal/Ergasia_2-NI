@@ -16,7 +16,7 @@ public class CustomerMenuPanel extends JPanel {
     public CustomerMenuPanel(MainWindow mainWindow, Customer customer) {
         setLayout(new BorderLayout());
 
-        // Welcome label at the top
+       
         JLabel welcomeLabel = new JLabel("Welcome, " + customer.getUserName(), SwingConstants.CENTER);
         welcomeLabel.setFont(new Font("Arial", Font.BOLD, 20));
         add(welcomeLabel, BorderLayout.NORTH);
@@ -28,7 +28,7 @@ public class CustomerMenuPanel extends JPanel {
         userManager.bindAccountsToCustomers(List.of(customer), allAccounts);
         List<Account> customerAccounts = customer.getAccounts();
 
-        // Selection bar (South): buttons + account selector
+       
         JPanel selectionBar = new JPanel(new FlowLayout());
 
         JButton transactionsButton = new JButton("Transactions");
@@ -55,7 +55,7 @@ public class CustomerMenuPanel extends JPanel {
         selectionBar.add(logoutButton);
         add(selectionBar, BorderLayout.SOUTH);
 
-        // Center: account information
+       
         JPanel centerPanel = new JPanel();
         centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.Y_AXIS));
         centerPanel.setBorder(BorderFactory.createTitledBorder("Your Accounts"));
@@ -74,11 +74,11 @@ public class CustomerMenuPanel extends JPanel {
 
         add(centerPanel, BorderLayout.CENTER);
 
-        // Left & Right placeholders
+       
         add(new JPanel(), BorderLayout.EAST);
         add(new JPanel(), BorderLayout.WEST);
 
-        // Action listeners
+      
         transactionsButton.addActionListener(e -> {
             Account selected = (Account) accountComboBox.getSelectedItem();
             if (selected != null) {
@@ -90,8 +90,9 @@ public class CustomerMenuPanel extends JPanel {
         });
 
         billsButton.addActionListener(e -> {
-             mainWindow.addPanel("billMenu", new )
-            JOptionPane.showMessageDialog(this, "Bills functionality coming soon!");
+        	mainWindow.addPanel("billMenu", new BillMenuPanel(mainWindow, customer));
+        	mainWindow.showPanel("billMenu");
+
         });
 
         logoutButton.addActionListener(e -> {

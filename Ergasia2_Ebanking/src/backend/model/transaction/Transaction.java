@@ -29,7 +29,7 @@ public abstract class Transaction implements Storable{
 		this.id = UUID.randomUUID().toString();
 		this.amount = amount;
 		this.dateTime = LocalDateTime.now();
-		this.type= null;
+		this.type= type;
 			
 		
 	}
@@ -125,4 +125,3 @@ public abstract class Transaction implements Storable{
     }
 
 }
-    

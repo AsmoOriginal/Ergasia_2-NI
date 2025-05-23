@@ -8,6 +8,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -90,17 +91,22 @@ public class StandingOrderManager {
     	        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
     	            String line;
     	            while ((line = reader.readLine()) != null) {
-    	            	StandingOrder order;
-    	            	if (line.contains("type:PaymentOrder")) {
-    	            	    order = new PaymentOrder();
-    	            	} else if (line.contains("type:TransferOrder")) {
-    	            	    order = new TransferOrder();
-    	            	} else  {
+    	                StandingOrder order;
+    	                if (line.contains("PaymentOrder")) {
+    	                    order = new PaymentOrder();
+    	                } else if (line.contains("TransferOrder")) {
+    	                    order = new TransferOrder();
+    	                } else  {
     	                    continue; 
     	                }
     	                order.unmarshal(line);
+    	                boolean isActiveFile = file.getAbsolutePath().endsWith("active.csv");
+    	               
+    	                if (isActiveFile) {
+    	                    order.setActive(true);  
+    	                }
+
     	                standingOrders.add(order);
-    	                
     	                String status = order.isActive() ? "active" : "failed"; // ή expired αν έχεις
     	                OrderGroup group = ordersByStatus.get(status);
     	                
@@ -125,7 +131,7 @@ public class StandingOrderManager {
     	    }
 
     	    this.orders = standingOrders;
-    	    System.out.println("Loaded Standing Orders: " + standingOrders.size());
+    	    
     	    
     	    return standingOrders;
     	}
@@ -156,7 +162,7 @@ public class StandingOrderManager {
 
             @Override
             public void unmarshal(String data) {
-                // Δεν το χρειάζεσαι εδώ
+                
             }
         };
 
@@ -164,53 +170,64 @@ public class StandingOrderManager {
     }
 
      
-    //Kάνε execute τα orders για μια συγκεκριμένη ημερομηνία "date"
+   
 	public void executeOrdersForDate(LocalDate date) {
-	    System.out.println("Executing orders for date: " + date);
-
 	    OrderGroup activeOrders = ordersByStatus.get("active");
+	    System.out.println("Transfer orders count: " + activeOrders.transfers.size());
 
 	    // Payment Orders
 	    for (PaymentOrder paymentOrder : activeOrders.payments) {
 	        System.out.println("Checking PaymentOrder: " + paymentOrder);
 	        if (paymentOrder.shouldExecute(date)) {
-	            System.out.println("-> Executing PaymentOrder");
+	            System.out.println("Executing PaymentOrder");
 	            executeOrderAndRetry(paymentOrder, date);
 	        } else if (date.isAfter(paymentOrder.getEndDate())) {
-	            System.out.println("-> PaymentOrder expired, moving to expired");
+	            System.out.println("PaymentOrder expired, moving to expired");
 	            moveToExpired(paymentOrder);
 	        } else {
-	            System.out.println("-> Not time to execute yet");
+	            System.out.println("Not time to execute yet");
 	        }
 	    }
+	    
+	    List<TransferOrder> toRemove = new ArrayList<>();
 
-	    // Transfer Orders
-	    for (TransferOrder transferOrder : activeOrders.transfers) {
+	    Iterator<TransferOrder> iterator = activeOrders.transfers.iterator();
+	    while (iterator.hasNext()) {
+	        TransferOrder transferOrder = iterator.next();
+
 	        System.out.println("Checking TransferOrder: " + transferOrder);
 	        if (transferOrder.shouldExecute(date)) {
 	            System.out.println("-> Executing TransferOrder");
-	            executeOrderAndRetry(transferOrder, date);
+	            boolean success = executeOrderAndRetry(transferOrder, date);
+	            if (!success) {
+	                System.out.println("[FAILED] Order " + transferOrder.getOrderId() + " failed after retries");
+	                               
+	                moveToFailed(transferOrder);
+	            }
 	        } else if (date.isAfter(transferOrder.getEndDate())) {
 	            System.out.println("-> TransferOrder expired, moving to expired");
+	                         
 	            moveToExpired(transferOrder);
 	        } else {
 	            System.out.println("-> Not time to execute yet");
 	        }
 	    }
+
+	    
 	}
 
+
      
-	public void executeOrderAndRetry(StandingOrder order, LocalDate executionDate) {
+	public boolean executeOrderAndRetry(StandingOrder order, LocalDate executionDate) {
 	    int attempts = 0;
 	    boolean success = false;
 
 	    while (attempts < 3 && !success) {
 	        try {
-	            List<Transaction> transactions = order.execute(executionDate);  // 👈 ΠΡΑΓΜΑΤΙΚΗ ΕΚΤΕΛΕΣΗ
+	            List<Transaction> transactions = order.execute(executionDate);  
 	            if (!transactions.isEmpty()) {
 	                System.out.println("[EXECUTED] Order " + order.getOrderId() + " created " + transactions.size() + " transaction(s)");
-	                // Αν θέλεις να κάνεις κάτι με το transaction, π.χ. να το αποθηκεύσεις
-	                this.setTransaction(transactions.get(0));  // ή κάνε iterate αν έχει πολλά
+	                this.setTransaction(transactions.get(0));  
 	            } else {
 	                System.out.println("[SKIPPED] Order " + order.getOrderId() + " returned no transactions");
 	            }
@@ -226,7 +243,10 @@ public class StandingOrderManager {
 	            }
 	        }
 	    }
+
+	    return success;
 	}
+
 
      
      //method that removes the active order and add it to the failed(use that method for more uses if needed and cleaner code)
@@ -290,9 +310,11 @@ public class StandingOrderManager {
 		    return result;
          }
 		
-		// Στο StandingOrderManager
+		
 		public List<StandingOrder> getAllOrders() {
 		    return this.orders; 
 		}
+		
+		
 
 }

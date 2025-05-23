@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import backend.context.AppContext;
+import backend.manager.AccountManager;
+import backend.manager.UserManager;
 
 public class MainWindow extends JFrame {
 
@@ -26,7 +28,10 @@ public class MainWindow extends JFrame {
         // add the start panels
         addPanel("start", new StartPanel(this));
         addPanel("login", new LoginPanel(this, AppContext.getInstance().getUserManager()));
-        addPanel("signup", new SignupPanel(this));
+        
+        UserManager userManager = UserManager.getInstance();
+        AccountManager accountManager = AccountManager.getInstance();
+        addPanel("signup", new SignupPanel(this, userManager, accountManager)); 
 
         add(contentPanel);
         setVisible(true);
@@ -47,8 +52,4 @@ public class MainWindow extends JFrame {
         cardLayout.show(contentPanel, name);
     }
 
-   /*  //(Προαιρετικό) Επιστροφή ενός panel με βάση το όνομα
-    public JPanel getPanel(String name) {
-        return panelMap.get(name);
-    }*/
 }

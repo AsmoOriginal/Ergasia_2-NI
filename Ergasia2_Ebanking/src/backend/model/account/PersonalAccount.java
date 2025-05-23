@@ -20,7 +20,7 @@ public class PersonalAccount extends Account {
 	    this.secondaryHolders = new ArrayList<>();
 	}
 
-	public PersonalAccount(Customer primaryOwner, BigDecimal interestRate,  List<Customer> secondaryHolders) {
+	public PersonalAccount(Customer primaryOwner, BigDecimal interestRate) {
 		super("PersonalAccount", generateIban("100"), primaryOwner, LocalDate.now(), interestRate, BigDecimal.ZERO);
 		this.secondaryHolders = (secondaryHolders != null) ? secondaryHolders : new ArrayList<>();
 	}

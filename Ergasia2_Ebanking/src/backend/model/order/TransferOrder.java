@@ -120,21 +120,20 @@ public class TransferOrder extends StandingOrder {
 
 	@Override
 	public boolean shouldExecute(LocalDate date) {
-	    System.out.println("[DEBUG] Checking execution for " + getOrderId() + " on " + date);
+	    
 
 	    if (date.isBefore(startDate) || date.isAfter(endDate)) {
-	        System.out.println("[DEBUG] Outside valid period");
+	       
 	        return false;
 	    }
 
 	    if (date.getDayOfMonth() != this.dayOfMonth) {
-	        System.out.println("[DEBUG] Not the correct day of month. Expected: " + this.dayOfMonth);
-	        return false;
+	    	return false;
 	    }
 
 	    long monthsBetween = ChronoUnit.MONTHS.between(startDate.withDayOfMonth(1), date.withDayOfMonth(1));
 	    boolean execute = monthsBetween % frequencyInMonths == 0;
-	    System.out.println("[DEBUG] Months between: " + monthsBetween + " -> execute: " + execute);
+	   
 
 	    return execute;
 	}
@@ -144,7 +143,7 @@ public class TransferOrder extends StandingOrder {
 	@Override
 	public List<Transaction> execute(LocalDate currentDate) {
 	    if (shouldExecute(currentDate)) {
-	        System.out.println("[EXECUTE] TransferOrder executing on " + currentDate);
+	       
 
 	        Account creditAccountObj = AccountManager.getInstance().getAccountByIban(getCreditAccount().getIban());
 

@@ -112,18 +112,7 @@ public class AccountManager {
         return null;  // Αν δεν βρεθεί, επιστρέφουμε null
     }
     
-   /* public boolean deleteAccountByIban(String iban) {
-        Account account = getAccountByIban(iban);  //χρήση της παραπάνω μεθόδου
 
-        if (account != null) {
-            accounts.remove(account);             // Αφαίρεση από τη λίστα
-            saveAccountsToFile();                 // Επανεγγραφή του αρχείου
-            return true;
-        }
-
-        return false; // Αν δεν βρεθεί
-    }*/
-   
     
  // Μέθοδος για την επιστροφή όλων των λογαριασμών
     public List<Account> getAllAccounts() {
@@ -152,7 +141,7 @@ public class AccountManager {
    }
      */
     
-    private void updateNextId() {
+    public void updateNextId() {
         long max = 100000000000000L;
         for (Account acc : accounts) {
             String iban = acc.getIban();

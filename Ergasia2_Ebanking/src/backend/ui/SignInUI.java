@@ -1,9 +1,15 @@
 package backend.ui;
 
+import java.math.BigDecimal;
 import java.util.Scanner;
 
+import backend.manager.AccountManager;
 import backend.manager.UserManager;
+import backend.model.account.Account;
+import backend.model.account.BusinessAccount;
+import backend.model.account.PersonalAccount;
 import backend.model.user.Company;
+import backend.model.user.Customer;
 import backend.model.user.Individual;
 import backend.model.user.User;
 
@@ -12,7 +18,7 @@ public class SignInUI {
 	private static Scanner scanner = new Scanner(System.in);
 	
 	//create the user
-	public static User signInMenu(UserManager userManager, Scanner scanner) {
+	public static User signInMenu(UserManager userManager, AccountManager accountManager,Scanner scanner) {
 		
 		System.out.println("==== Sign Up ====");
 		
@@ -75,7 +81,7 @@ public class SignInUI {
 		}
 		
 		//create the user object and save it to file
-		User newUser = null;
+		Customer newUser = null;
 		if(type.equals("Individual")) {
 			 newUser = new Individual(legalName, userName, password, vatNumber);
 		}
@@ -87,17 +93,65 @@ public class SignInUI {
 		//save the users to file
 		if(newUser != null) {
 			userManager.addUser(newUser);
-	//		userManager.saveUsersToFile();
-			System.out.println("New user created");
-			return newUser;
-		}
-		else {
-			return null;
+			userManager.saveUsersToFile("data/users/users.csv");
+			
+			 // Επιλογή λογαριασμού
+		    String accountType = null;
+		    while(accountType == null) {
+		        System.out.println("Choose account type:");
+		        System.out.println("(1) Personal Account");
+		        System.out.println("(2) Business Account");
+		        System.out.print("Choose between 1-2: ");
+		        
+		        int accInput = readInt();
+		        if(accInput == 1) accountType = "Personal";
+		        else if(accInput == 2) accountType = "Business";
+		        else System.out.println("Invalid choice. Try again.");
+		    }
+		    
+		    Account newAccount = null;
+		    
+		    if(accountType.equals("Personal")) {
+		        // Αν θες να προσθέσεις και secondaryHolder:
+		        System.out.print("Do you want to add a secondary holder? (y/n): ");
+		        String secHolderAnswer = scanner.nextLine().trim().toLowerCase();
+		        
+		        Customer secondaryHolder = null;
+		        if(secHolderAnswer.equals("y")) {
+		            System.out.print("Enter secondary holder username: ");
+		            
+		            secondaryHolder = userManager.findUserByVat(secHolderAnswer);
+		            if(secondaryHolder == null) {
+		                System.out.println("Secondary holder user not found. Continuing without secondary holder.");
+		            }
+		        }
+		        
+		        // Δημιουργία PersonalAccount
+		        PersonalAccount  newPAccount = new PersonalAccount(newUser,  new BigDecimal("0.02"));
+		     if(secondaryHolder != null) {
+		            boolean added = newPAccount.add(secondaryHolder);
+		            if (!added) {
+		                System.out.println("Secondary holder was not added.");
+		            }
+		        }
+		     newAccount = newPAccount;
+		    } else if(accountType.equals("Business")) {
+		        // Δημιουργία BusinessAccount
+		        newAccount = new BusinessAccount(newUser, new BigDecimal("0.03"));
+		    }
+		    
+		    if(newAccount != null) {
+		        accountManager.addAccount(newAccount);
+		        System.out.println("New account created with IBAN: " + newAccount.getIban());
+		        // Αποθήκευση στο αρχείο
+		        accountManager.saveAccountsToFile("data/accounts/accounts.csv");
+		    
+		    }
 		}
 		
-		
+	    
+	    return newUser;
 	}
-
 	
 	private static int readInt() {
         while (true) {

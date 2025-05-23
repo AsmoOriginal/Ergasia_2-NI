@@ -4,6 +4,9 @@ import javax.swing.*;
 import java.awt.*;
 
 import backend.context.AppContext;
+import backend.manager.AccountManager;
+import backend.manager.StandingOrderManager;
+import backend.manager.StatementManager;
 import backend.manager.UserManager;
 import backend.model.user.Admin;
 import backend.model.user.Customer;
@@ -98,8 +101,14 @@ public class LoginPanel extends JPanel {
             mainWindow.addPanel("customerMenu", new CustomerMenuPanel(mainWindow, (Customer) user));
             mainWindow.showPanel("customerMenu");
         } else if (user instanceof Admin) {      
-         //  mainWindow.addPanel("adminMenu", new AdminMenuPanel(mainWindow, (Admin) user));
-          // mainWindow.showPanel("adminMenu");
+           mainWindow.addPanel("adminMenu", new AdminMenuPanel(
+        	        mainWindow,
+        	        UserManager.getInstance(),
+        	        AccountManager.getInstance(),
+        	        StandingOrderManager.getInstance(),
+        	        StatementManager.getInstance()
+        	    ));
+           mainWindow.showPanel("adminMenu");
         	
         }
         mainWindow.revalidate();

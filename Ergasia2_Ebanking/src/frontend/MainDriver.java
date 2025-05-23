@@ -38,17 +38,21 @@ public class MainDriver {
         
         
         userManager.loadUsersFromFile("data/users/users.csv");
-       statementManager.loadAllAccountStatementsFromFolder("data/statements");
+       
         accountManager.loadAccountsFromFile("data/accounts/accounts.csv");
+       
+        List<Account> accounts = accountManager.getAccounts();
+        List<Customer> customers = userManager.getCustomers();
+
+        userManager.bindAccountsToCustomers(customers, accounts); 
+        statementManager.loadAllAccountStatementsFromFolder("data/statements");
 		standingOrderManager.loadStandingOrdersFromFolder("data/orders");
         
 		
-       List<Account> accounts = accountManager.getAccounts();
-        List<Customer> customers = userManager.getCustomers();
+       
         List<AccountStatement> statement = statementManager.getStatements();
       
         
-        userManager.bindAccountsToCustomers(customers, accounts);  
        // Ταυτοποίηση
        User currentUser = null;
        
@@ -74,7 +78,7 @@ public class MainDriver {
                break;
            case "2":
         	   //Sign up ενός χρήστη μόνο individual ή Company
-               User newUser = SignInUI.signInMenu(userManager, scanner);
+               User newUser = SignInUI.signInMenu(userManager,accountManager, scanner);
                if (newUser != null) {
                    System.out.println("Account created successfully. You can now log in.");
                }

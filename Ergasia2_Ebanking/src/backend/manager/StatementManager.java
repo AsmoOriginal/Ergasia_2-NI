@@ -11,8 +11,7 @@ public class StatementManager {
 
 	 private static StatementManager instance;
 	    private final Map<String, List<AccountStatement>> statementMap = new HashMap<>();
-	    private List<AccountStatement> statements;
-	    
+	    private List<AccountStatement> statements= new ArrayList<>();
 
 	   
 
@@ -91,8 +90,8 @@ public class StatementManager {
 	                e.printStackTrace();
 	            }
 	        }
-
-	        System.out.println("Loaded Account Statements: " + statements.size());
+	        this.statements = statements;
+	        
 	        return statements;
 	    }
 
@@ -123,5 +122,3 @@ public class StatementManager {
 	    
 	    
 }
-
-

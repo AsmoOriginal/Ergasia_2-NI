@@ -35,7 +35,7 @@ public class BillMenuUi {
         }
     }
 	public static void loadIssuedBills(Customer customer) {
-        BillManager billManager = BillManager.getInstance(); // υποθέτουμε singleton
+        BillManager billManager = BillManager.getInstance(); 
         List<Bill> bills = billManager.loadBillsByCustomerVat("data/bills",customer);
 
         if (bills.isEmpty()) {
@@ -73,7 +73,7 @@ public class BillMenuUi {
  	    // Φιλτράρουμε μόνο τα paid
  	    List<Bill> paidBills = bills.stream()
  	        .filter(Bill::isPaid)
- 	        .toList(); // ή collect(Collectors.toList())
+ 	        .toList();
 
  	    if (paidBills.isEmpty()) {
  	        System.out.println("No paid bills found.");

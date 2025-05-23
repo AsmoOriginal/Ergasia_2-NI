@@ -108,11 +108,14 @@ public class AccountStatement implements Storable {
         sb.append("to:").append(toDate.format(formatter)).append(",");
         
         sb.append("transactions:");
-
-        for (int i = 0; i < transactions.size(); i++) {
-            sb.append("{").append(transactions.get(i).marshal()).append("}");
-            if (i < transactions.size() - 1) {
-                sb.append(";");  // separator for multiple transactions
+        if (transactions == null || transactions.isEmpty()) {
+            sb.append("none");  // Ή απλά άφησε κενό, αλλά καλύτερα να το δεις
+        } else {
+            for (int i = 0; i < transactions.size(); i++) {
+                sb.append("{").append(transactions.get(i).marshal()).append("}");
+                if (i < transactions.size() - 1) {
+                    sb.append(";");
+                }
             }
         }
 
@@ -150,7 +153,7 @@ public class AccountStatement implements Storable {
                 }
 
                 //[0] = type
-                String iban = parts[1];
+                String iban = parts[1].replaceFirst("(?i)iban:", "").trim();
                 DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
                 LocalDate fromDate = LocalDate.parse(parts[2].replace("from:", ""), formatter);
                 LocalDate toDate = LocalDate.parse(parts[3].replace("to:", ""), formatter);
@@ -161,15 +164,24 @@ public class AccountStatement implements Storable {
                 }
 
                 List<Transaction> transactions = new ArrayList<>();
-                String transactionsRaw = parts[4];
+                String transactionsRaw = parts[4].trim();
+                if (transactionsRaw.startsWith("transactions:")) {
+                    transactionsRaw = transactionsRaw.substring("transactions:".length());
+                }
+
+               
                 if (!transactionsRaw.isEmpty()) {
-                    // Κάθε transaction είναι χωρισμένο με ';' (όπως στο marshal)
-                    String[] txStrings = transactionsRaw.split(";");
+                    if (transactionsRaw.startsWith("{") && transactionsRaw.endsWith("}")) {
+                        transactionsRaw = transactionsRaw.substring(1, transactionsRaw.length() - 1);
+                    }
 
+                    String[] txStrings = transactionsRaw.split("\\}\\;\\{");
+                   
                     for (String txStr : txStrings) {
-                        
+                        txStr = txStr.replace("{", "").replace("}", "");
+                   
                         Map<String, String> txData = parseStringToMap(txStr);
-
+                       
                         // Παίρνεις τον τύπο
                         String txType = txData.get("type");
                         Transaction tx = null;

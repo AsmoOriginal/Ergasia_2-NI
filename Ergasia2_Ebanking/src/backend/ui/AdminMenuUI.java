@@ -121,7 +121,7 @@ public class AdminMenuUI {
 
         System.out.println("Standing Orders:");
         for (StandingOrder order : orders) {
-            System.out.println("- " + order.marshal()); // Ή εμφάνιση πεδίων αναλυτικά
+            System.out.println("- " + order.marshal());
         }
     }
     

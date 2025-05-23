@@ -97,7 +97,7 @@ public class CustomerAdminMenu {
         System.out.print("Enter customer's username or VAT: ");
         String input = scanner.nextLine().trim();
 
-        Customer customer = userManager.findCustomerByUsernameOrVat(input, customers); // δίνουμε και τη λίστα
+        Customer customer = userManager.findCustomerByUsernameOrVat(input, customers); 
         
 		customer.getAccounts();
         
@@ -112,7 +112,7 @@ public class CustomerAdminMenu {
             System.out.println("\nAccounts:");
             for (Account acc : accounts) {
                 System.out.printf("- IBAN: %s | Balance: %.2f | Type: %s%n",
-                    acc.getIban(), acc.getBalance(), acc.getType()); // ή acc.getClass().getSimpleName()
+                    acc.getIban(), acc.getBalance(), acc.getType());
             }
         }
     }

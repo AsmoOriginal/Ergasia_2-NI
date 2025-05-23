@@ -1,13 +1,27 @@
 package frontend.guiComponents;
 
+import backend.manager.AccountManager;
+import backend.manager.UserManager;
+import backend.model.account.Account;
+import backend.model.account.BusinessAccount;
+import backend.model.account.PersonalAccount;
+import backend.model.user.Company;
+import backend.model.user.Customer;
+import backend.model.user.Individual;
+
 import javax.swing.*;
 import java.awt.*;
-
-import backend.context.AppContext;
+import java.math.BigDecimal;
 
 public class SignupPanel extends JPanel {
 
-    public SignupPanel(MainWindow mainWindow) {
+    private final UserManager userManager;
+    private final AccountManager accountManager;
+
+    public SignupPanel(MainWindow mainWindow, UserManager userManager, AccountManager accountManager) {
+        this.userManager = userManager;
+        this.accountManager = accountManager;
+
         setLayout(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
 
@@ -70,13 +84,66 @@ public class SignupPanel extends JPanel {
         gbc.gridx = 1;
         add(submitButton, gbc);
 
-        // Action listeners 
-        //go back to the startPanel
+        // go back to startPanel
         backButton.addActionListener(e -> mainWindow.showPanel("start"));
-        //submit button that creates a user
+
+        // submit button that creates a user
         submitButton.addActionListener(e -> {
-            // user creation
-            JOptionPane.showMessageDialog(this, "Sign up functionality coming soon!");
+            String type = (String) typeComboBox.getSelectedItem();
+            String legalName = legalNameField.getText().trim();
+            String username = usernameField.getText().trim();
+            String password = new String(passwordField.getPassword()).trim();
+            String vatNumber = vatNumberField.getText().trim();
+
+            // validation
+            if (username.isEmpty() || password.isEmpty() || vatNumber.isEmpty() || legalName.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Please fill all fields.");
+                return;
+            }
+
+            if (userManager.getUserByUsername(username) != null) {
+                JOptionPane.showMessageDialog(this, "Username already exists.");
+                return;
+            }
+
+            if (userManager.findUserByVat(vatNumber) != null) {
+                JOptionPane.showMessageDialog(this, "VAT number already exists.");
+                return;
+            }
+
+            Customer newUser;
+            if ("Individual".equals(type)) {
+                newUser = new Individual(legalName, username, password, vatNumber);
+            } else {
+                newUser = new Company(legalName, username, password, vatNumber);
+            }
+
+            // Save user
+            userManager.addUser(newUser);
+            userManager.saveUsersToFile("data/users/users.csv");
+
+            // Ask for account type
+            String[] options = {"Personal Account", "Business Account"};
+            int accChoice = JOptionPane.showOptionDialog(this, "Select Account Type", "Account Type",
+                    JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[0]);
+
+            Account newAccount = null;
+
+            if (accChoice == 0) {
+                PersonalAccount account = new PersonalAccount(newUser, new BigDecimal("0.02"));
+               
+                newAccount = account;
+            } else if (accChoice == 1) {
+                newAccount = new BusinessAccount(newUser, new BigDecimal("0.03"));
+            }
+
+            if (newAccount != null) {
+                accountManager.addAccount(newAccount);
+                accountManager.saveAccountsToFile("data/accounts/accounts.csv");
+
+                JOptionPane.showMessageDialog(this, "User created successfully!\nIBAN: " + newAccount.getIban());
+                mainWindow.showPanel("login");
+            }
         });
     }
 }
