@@ -152,9 +152,8 @@ public class AccountStatement implements Storable {
                 //[0] = type
                 String iban = parts[1];
                 DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-                LocalDate fromDate = LocalDate.parse(parts[2], formatter);
-                LocalDate toDate = LocalDate.parse(parts[3], formatter);
-
+                LocalDate fromDate = LocalDate.parse(parts[2].replace("from:", ""), formatter);
+                LocalDate toDate = LocalDate.parse(parts[3].replace("to:", ""), formatter);
                 Account account = AccountManager.getInstance().getAccountByIban(iban);
                 if (account == null) {
                     System.err.println("Account with IBAN " + iban + " not found.");

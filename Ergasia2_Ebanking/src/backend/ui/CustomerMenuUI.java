@@ -81,7 +81,7 @@ public class CustomerMenuUI {
                     Account selectedAccount = accounts.get(choice - 1);
                     //go to transaction menu
                     TransactionMenuUI.transactionShowMenu(customer, selectedAccount);
-                    scanner.close();
+                    scanner.nextLine();
                 }
             } catch (NumberFormatException e) {
                 System.out.println("Please enter a valid number.");
